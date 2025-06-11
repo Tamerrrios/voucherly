@@ -3,9 +3,15 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 
+// firebase
+import Firebase
+
 @main
 class AppDelegate: RCTAppDelegate {
   override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+
+    FirebaseApp.configure()
+
     self.moduleName = "voucherly"
     self.dependencyProvider = RCTAppDependencyProvider()
 

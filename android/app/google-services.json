@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "783433687267",
+    "project_id": "voucherly-93d61",
+    "storage_bucket": "voucherly-93d61.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:783433687267:android:93ae73231fbea7e728a5d6",
+        "android_client_info": {
+          "package_name": "com.voucherly"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "783433687267-2b58udn3pfrsmk86ee7kqfot21nu9ru7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDpIvDYrVJPK-hg8u2ZrnO215l4U3WyuSw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "783433687267-2b58udn3pfrsmk86ee7kqfot21nu9ru7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "783433687267-ppsj57l33mvnecf95rggp5vos37ro1l2.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.voucherly.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
