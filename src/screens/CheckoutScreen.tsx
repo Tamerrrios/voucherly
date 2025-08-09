@@ -17,6 +17,7 @@ import { Image } from 'react-native-animatable';
 
 import firestore from '@react-native-firebase/firestore';
 import { auth } from '../firebase/firebase';
+import { v4 as uuidv4 } from 'uuid';
 
 
 const CheckoutScreen = () => {
@@ -24,6 +25,33 @@ const CheckoutScreen = () => {
   const navigation = useNavigation();
   const { order, resetOrder } = useOrder();
   const { imageUrl, audioUrl, comment, voucher, partnerName, receiverPhone } = order || {};
+
+const generateUniqueVoucherCode = async (): Promise<string> => {
+  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  const generateCode = () => {
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return `VC-${result}`;
+  };
+
+  let voucherCode = '';
+  let exists = true;
+
+  while (exists) {
+    voucherCode = generateCode();
+    const snapshot = await firestore()
+      .collection('orders')
+      .where('voucherCode', '==', voucherCode)
+      .get();
+    exists = !snapshot.empty;
+  }
+
+  return voucherCode;
+};
+
 
 useFocusEffect(
   React.useCallback(() => {
@@ -80,42 +108,65 @@ useFocusEffect(
     };
   }, [navigation])
 );
-  // useFocusEffect(
-  //   React.useCallback(() => {
-  //     const user = auth().currentUser;
-  //     if (!user) {
-  //       navigation.navigate('AuthRedirect', {
-  //         returnTo: 'Checkout', 
+  
+const handleConfirm = async () => {
+  console.log('[CONFIRM] Оформление заказа...');
+
+  if (!order || typeof order !== 'object') {
+    Alert.alert('Ошибка', 'Данные заказа не найдены.');
+    return;
+  }
+
+  const cleanOrder = Object.fromEntries(
+    Object.entries(order).filter(([_, v]) => v !== undefined)
+  );
+
+  const userID = auth().currentUser?.uid;
+
+  try {
+    const voucherCode = await generateUniqueVoucherCode();
+    console.log('[VoucherCode]', voucherCode);
+
+    const docRef = await firestore().collection('orders').add({
+      ...cleanOrder,
+      userID,
+      voucherCode, // 👈 Читаемый код ваучера
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    });
+
+    navigation.navigate('Success', { orderId: docRef.id });
+  } catch (error) {
+    console.error('Ошибка при оформлении:', error);
+    Alert.alert('Ошибка', 'Не удалось оформить заказ. Попробуйте ещё раз.');
+  }
+};
+
+
+
+  // const handleConfirm = async () => {
+  //   const cleanOrder = Object.fromEntries(
+  //     Object.entries(order).filter(([_, v]) => v !== undefined)
+  //   );
+  
+  //   const userID = auth().currentUser?.uid;
+  
+  //   try {
+  //     const docRef = await firestore()
+  //       .collection('orders')
+  //       .add({
+  //         ...cleanOrder,
+  //         userID, // 👈 Добавляем userId
+  //         createdAt: firestore.FieldValue.serverTimestamp(),
   //       });
-  //     }
-  //   }, [])
-  // );
-  
 
-  const handleConfirm = async () => {
-    const cleanOrder = Object.fromEntries(
-      Object.entries(order).filter(([_, v]) => v !== undefined)
-    );
-  
-    const userID = auth().currentUser?.uid;
-  
-    try {
-      const docRef = await firestore()
-        .collection('orders')
-        .add({
-          ...cleanOrder,
-          userID, // 👈 Добавляем userId
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        });
-
-      await docRef.update({ orderId: docRef.id });
-      navigation.navigate('Success', { orderId: docRef.id });
-      // navigation.navigate('Success');
-    } catch (error) {
-      console.error('Ошибка при отправке заказа:', error);
-      Alert.alert('Ошибка', 'Не удалось отправить заказ. Попробуйте ещё раз.');
-    }
-  };
+  //     // await docRef.update({ orderId: docRef.id });
+  //     navigation.navigate('Success', { orderId: docRef.id });
+  //     // navigation.navigate('Success');
+  //   } catch (error) {
+  //     console.error('Ошибка при отправке заказа:', error);
+  //     Alert.alert('Ошибка', 'Не удалось отправить заказ. Попробуйте ещё раз.');
+  //   }
+  // };
 
   return (
     <View style={styles.wrapper}>

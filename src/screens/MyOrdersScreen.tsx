@@ -5,12 +5,16 @@ import moment from 'moment';
 import 'moment/locale/ru';
 import { AuthContext } from '../context/AuthContext';
 import GradientHeader from '../components/GradientHeader';
+import { useNavigation } from '@react-navigation/native';
+
 
 const MyOrdersScreen = () => {
   const { user } = useContext(AuthContext);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+
+  
   useEffect(() => {
     if (!user) return;
 
@@ -94,7 +98,7 @@ const MyOrdersScreen = () => {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
       <GradientHeader title="Мои заказы" showBackButton = {true} />
       <FlatList
         data={orders}

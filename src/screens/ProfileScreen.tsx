@@ -17,7 +17,7 @@ const ProfileScreen = () => {
 
   const menuItems = [
     { title: 'Мои покупки', icon: require('../../assets/images/checkout.png'), onPress: () => navigation.navigate('MyOrders') },
-    { title: 'Мои ваучеры', icon: require('../../assets/images/voucher.png'), onPress: () => { } },
+    { title: 'Мои ваучеры', icon: require('../../assets/images/voucher.png'), onPress: () => navigation.navigate('MyVouchers') },
     { title: 'Язык', icon: require('../../assets/images/world.png'), onPress: () => { } },
     { title: 'Политика конфиденциальности', icon: require('../../assets/images/google-docs.png'), onPress: () => navigation.navigate('PrivacyPolicy') },
     { title: 'Выйти из приложения', icon: require('../../assets/images/user-logout.png'), onPress: handleLogout, color: '#E53935' },

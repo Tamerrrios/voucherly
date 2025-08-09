@@ -35,10 +35,15 @@ const GradientHeader: React.FC<GradientHeaderProps> = ({ title, showBackButton =
             }}
             size={24}
             iconSize={20}
-            style={{ position: 'absolute', top: 0, left: 20 }}
+            style={{
+              position: 'absolute',
+              left: 20,
+              bottom: 10,
+              zIndex: 10, // 👈 добавь обязательно!
+            }}
           />
         ) : (
-          <View style={styles.placeholder} /> // занимает то же место, что и кнопка
+          <View style={styles.placeholder} />
         )}
 
         <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">

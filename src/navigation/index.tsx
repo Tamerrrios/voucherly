@@ -1,3 +1,4 @@
+
 import React, { useContext, useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -25,6 +26,8 @@ import { PartnersProvider } from '../context/PartnersContext';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import { enableScreens } from 'react-native-screens';
+import MyVouchersScreen from '../screens/MyVouchersScreent';
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -35,8 +38,9 @@ const ProfileStack = createNativeStackNavigator();
 const ProfileStackNavigator = () => (
   <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
     <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
+    {/* <ProfileStack.Screen name="MyOrders" component={MyOrdersScreen} /> */}
+    <ProfileStack.Screen name="OrderDetails" component={OrderDetailsScreen} />
     <ProfileStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-    {/* Добавьте другие экраны профиля сюда */}
   </ProfileStack.Navigator>
 );
 
@@ -118,13 +122,11 @@ const AppNavigator = () => {
         <Stack.Screen name="Checkout" component={CheckoutScreen} />
         <Stack.Screen name="Success" component={SuccessScreen} />
         <Stack.Screen name="AuthRedirect" component={AuthRedirectScreen} />
-           <Stack.Screen name="Profile" component={ProfileScreen} />
+        {/* <Stack.Screen name="Profile" component={ProfileScreen} /> */}
         <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
         <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-     
-
-        
+          <Stack.Screen name="MyVouchers" component={MyVouchersScreen} />
 
         {!user && (
           <>

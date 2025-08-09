@@ -125,130 +125,6 @@ const HomeScreen = () => {
     </View>
   );
 };
-// const HomeScreen = () => {
-//   const [banners, setBanners] = useState<{ id: string }[]>([]);
-//   const [partners, setPartners] = useState<any[]>([]);
-//   const [categories, setCategories] = useState<any[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [searchQuery, setSearchQuery] = useState('');
-//   const [searching, setSearching] = useState(false);
-//   const [filteredPartners, setFilteredPartners] = useState<any[]>([]);
-//   const [popularPartners, setPopularPartners] = useState<any[]>([]);
-
-//   useEffect(() => {
-//     const fetchData = async () => {
-//       try {
-//         const [bannersData, partnersData, categoriesData] = await Promise.all([
-//           getBanners(),
-//           getPartners(),
-//           getCategories(),
-//         ]);
-//         setBanners(bannersData);
-//         setPartners(partnersData);
-//         setCategories(categoriesData);
-//         setFilteredPartners(partnersData);
-//         const popular = partnersData.filter(p => p.isPopular === true);
-//         setPopularPartners(popular);
-//       } catch (e) {
-//         console.error('Ошибка при загрузке данных:', e);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchData();
-//   }, []);
-
-//   useEffect(() => {
-//     setSearching(true);
-//     const delay = setTimeout(() => {
-//       if (searchQuery.trim() === '') {
-//         setFilteredPartners(partners);
-//       } else {
-//         const lowerQuery = searchQuery.toLowerCase();
-//         const filtered = partners.filter(partner =>
-//           partner.name.toLowerCase().includes(lowerQuery),
-//         );
-//         setFilteredPartners(filtered);
-//       }
-//       setSearching(false);
-//     }, 300);
-
-//     return () => clearTimeout(delay);
-//   }, [searchQuery, partners]);
-
-//   if (loading) {
-//     return (
-//       <View style={styles.loaderContainer}>
-//         <LottieView
-//           source={require('../../assets/animations/loader.json')}
-//           autoPlay
-//           loop
-//           style={styles.lottie}
-//         />
-//       </View>
-//     );
-//   }
-
-//   return (
-//     <View style={styles.container}>
-//       <View style={styles.statusBarSpacer} />
-
-//       <View style={styles.headerWrapper}>
-//         <Header />
-//       </View>
-
-//       <FlatList
-//         data={[]}
-//         keyExtractor={() => 'main'}
-//         ListHeaderComponent={
-//           <View>
-//             <View style={{ marginBottom: 16 }}>
-//               <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
-//             </View>
-//             <View style={{ marginBottom: 16 }}>
-//               <BannerCarousel banners={banners} />
-//             </View>
-//             <View style={{ marginBottom: 16 }}>
-//               <CategoryList categories={categories} />
-//             </View>
-//             {searchQuery.trim() === '' && popularPartners.length > 0 && (
-//               <View style={{ marginBottom: 8, paddingHorizontal: 24 }}>
-//               </View>
-//             )}
-//             {searching ? (
-//               <View style={styles.searchLoader}>
-//                 <LottieView
-//                   source={require('../../assets/animations/loader.json')}
-//                   autoPlay
-//                   loop
-//                   style={{ width: 60, height: 60 }}
-//                 />
-//               </View>
-//             ) : filteredPartners.length === 0 && searchQuery.trim() !== '' ? (
-//               <View style={styles.emptyResult}>
-//                 <LottieView
-//                   source={require('../../assets/animations/emptySearch.json')}
-//                   autoPlay
-//                   loop
-//                   style={{ width: 150, height: 150 }}
-//                 />
-//                 <Text style={{ color: '#666', fontSize: 16, textAlign: 'center' }}>
-//                   Ничего не найдено по запросу "{searchQuery}"
-//                 </Text>
-//               </View>
-//             ) : (
-//               <PartnerList partners={filteredPartners.filter(p => searchQuery.trim() ? true : p.isPopular)} />
-//             )}
-//           </View>
-//         }
-//         renderItem={null}
-//         showsVerticalScrollIndicator={false}
-//         contentContainerStyle={styles.scrollContent}
-//       />
-//     </View>
-//   );
-// };
 
 const styles = StyleSheet.create({
   container: {
@@ -270,6 +146,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 20,
+    
   },
   loaderContainer: {
     flex: 1,

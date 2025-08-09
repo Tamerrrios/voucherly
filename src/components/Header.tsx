@@ -31,7 +31,7 @@ const Header = () => {
           onPress={() => navigation.navigate('Notifications')}
         >
           <Image
-            source={require('../../assets/images/notification-bell.png')}
+            source={require('../../assets/images/notification.png')}
             style={styles.notificationIcon}
             resizeMode="contain"
           />
