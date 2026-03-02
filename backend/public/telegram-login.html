@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Telegram Login</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+          'Helvetica Neue', sans-serif;
+        background: #f6f7f9;
+        margin: 0;
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+      }
+      .card {
+        width: min(92vw, 380px);
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+        text-align: center;
+      }
+      .title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 8px;
+      }
+      .hint {
+        color: #6b7280;
+        margin: 0 0 16px;
+        font-size: 14px;
+      }
+      .error {
+        margin-top: 12px;
+        color: #b91c1c;
+        font-size: 13px;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1 class="title">Continue with Telegram</h1>
+      <p class="hint">Authenticate safely to continue.</p>
+
+      <script
+        async
+        src="https://telegram.org/js/telegram-widget.js?22"
+        data-telegram-login="__TELEGRAM_BOT_USERNAME__"
+        data-size="large"
+        data-userpic="true"
+        data-request-access="write"
+        data-onauth="onTelegramAuth(user)"
+      ></script>
+
+      <p id="error" class="error"></p>
+    </div>
+
+    <script>
+      const VERIFY_ENDPOINT = `${window.location.origin}/auth/telegram/verify`;
+
+      const postToReactNative = (payload) => {
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+        }
+      };
+
+      const showError = (message) => {
+        const node = document.getElementById('error');
+        node.textContent = message;
+        node.style.display = 'block';
+      };
+
+      async function onTelegramAuth(user) {
+        try {
+          const response = await fetch(VERIFY_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(user),
+          });
+
+          const data = await response.json();
+          if (!response.ok || !data.customToken) {
+            throw new Error(data.error || 'Failed to verify Telegram auth');
+          }
+
+          postToReactNative({
+            type: 'telegram_auth_success',
+            token: data.customToken,
+          });
+        } catch (error) {
+          const message = error?.message || 'Telegram login failed';
+          showError(message);
+          postToReactNative({
+            type: 'telegram_auth_error',
+            message,
+          });
+        }
+      }
+
+      window.onTelegramAuth = onTelegramAuth;
+    </script>
+  </body>
+</html>

@@ -13,36 +13,39 @@ import LottieView from "lottie-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import LinearGradient from "react-native-linear-gradient"; 
+import { Typography } from "../theme/typography"
+import { useLocalization } from '../context/LocalizationContext';
 
 const { width, height } = Dimensions.get("window");
 
-const slides = [
-  {
-    key: "1",
-    title: "Добро пожаловать!",
-    subtitle: "Voucherly — маркетплейс электронных ваучеров",
-    animation: require("../../assets/animations/onBoarding1.json"),
-  },
-  {
-    key: "2",
-    title: "Дарите ваучеры",
-    subtitle: "Выбирай и отправляй друзьям с открытками 🎁",
-    animation: require("../../assets/animations/onBoarding2.json"),
-  },
-  {
-    key: "3",
-    title: "Просто и быстро",
-    subtitle: "Покупка и отправка за пару кликов",
-    animation: require("../../assets/animations/onBoarding3.json"),
-  },
-];
-
 const OnboardingScreen = () => {
+  const { language } = useLocalization();
   const flatListRef = useRef<FlatList>(null);
   const navigation = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(30)).current;
+
+  const slides = {
+    ru: [
+      { key: '1', title: 'Подарки в один клик 🎉', subtitle: 'Дарите эмоции через цифровые ваучеры', animation: require('../../assets/animations/onBoarding1.json') },
+      { key: '2', title: 'Выбирай и дари 🎁', subtitle: 'Ваучеры с красивыми открытками для друзей и близких', animation: require('../../assets/animations/onBoarding2.json') },
+      { key: '3', title: 'Всего пара кликов ⚡', subtitle: 'Купи и отправь подарок за минуту', animation: require('../../assets/animations/onBoarding3.json') },
+    ],
+    uz: [
+      { key: '1', title: 'Bir bosishda sovg‘a 🎉', subtitle: 'Raqamli vaucherlar orqali quvonch ulashing', animation: require('../../assets/animations/onBoarding1.json') },
+      { key: '2', title: 'Tanlang va yuboring 🎁', subtitle: 'Do‘stlar va yaqinlar uchun chiroyli kartochkali vaucherlar', animation: require('../../assets/animations/onBoarding2.json') },
+      { key: '3', title: 'Atigi bir necha bosish ⚡', subtitle: 'Sovg‘ani bir daqiqada sotib olib yuboring', animation: require('../../assets/animations/onBoarding3.json') },
+    ],
+    en: [
+      { key: '1', title: 'Gifts in one tap 🎉', subtitle: 'Share emotions through digital vouchers', animation: require('../../assets/animations/onBoarding1.json') },
+      { key: '2', title: 'Choose and send 🎁', subtitle: 'Vouchers with beautiful cards for friends and family', animation: require('../../assets/animations/onBoarding2.json') },
+      { key: '3', title: 'Just a few taps ⚡', subtitle: 'Buy and send a gift in a minute', animation: require('../../assets/animations/onBoarding3.json') },
+    ],
+  }[language];
+
+  const nextText = language === 'uz' ? 'Keyingi' : language === 'en' ? 'Next' : 'Далее';
+  const startText = language === 'uz' ? 'Boshlash' : language === 'en' ? 'Start' : 'Начать';
 
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
@@ -133,7 +136,7 @@ const OnboardingScreen = () => {
         activeOpacity={0.8}
       >
         <Text style={styles.buttonText}>
-          {currentIndex === slides.length - 1 ? "Начать" : "Далее"}
+          {currentIndex === slides.length - 1 ? startText : nextText}
         </Text>
       </TouchableOpacity>
     </LinearGradient>
@@ -157,18 +160,16 @@ const styles = StyleSheet.create({
     height: height * 0.4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
+    ...Typography.title,
     marginTop: 40,
   },
+    
+
   subtitle: {
-    fontSize: 16,
-    color: "#444",
-    textAlign: "center",
-    marginTop: 15,
+  ...Typography.subtitle,
+    marginTop: 8,
     paddingHorizontal: 20,
+    textAlign: "center"
   },
   indicatorContainer: {
     flexDirection: "row",
@@ -196,8 +197,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   buttonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
+  ...Typography.buttonText,
   },
 });

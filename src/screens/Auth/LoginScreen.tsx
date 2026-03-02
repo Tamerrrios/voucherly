@@ -1,178 +1,344 @@
-import React, { useState, useContext, useEffect, useRef } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   TextInput,
   TouchableOpacity,
   Alert,
-  Keyboard,
-  Animated,
-  Platform,
-  ScrollView,
-  TouchableWithoutFeedback,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { AuthContext } from '../../context/AuthContext';
+import GradientHeader from '../../components/GradientHeader';
+
 import LottieView from 'lottie-react-native';
-import GradientHeader from '../../components/GradientHeader'; 
+import { AuthContext } from '../../context/AuthContext';
+
+
+import { Typography } from '../../theme/typography';
+import { Colors } from '../../theme/colors';
+import { Routes } from '../../navigation/types';
+import { Font } from '../../theme/typography';
+import { auth } from '../../firebase/firebase';
+import TelegramLoginWebView from '../../components/TelegramLoginWebView';
+import { useLocalization } from '../../context/LocalizationContext';
 
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigation = useNavigation();
+
+  const [secure, setSecure] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [telegramVisible, setTelegramVisible] = useState(false);
+
+  const navigation = useNavigation<any>();
   const { login } = useContext(AuthContext);
 
-  const route = useRoute();
+  const route = useRoute<any>();
   const { returnTo } = route.params || {};
+  const { t } = useLocalization();
 
-  const shift = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const keyboardDidShow = Keyboard.addListener('keyboardWillShow', (event) => {
-      Animated.timing(shift, {
-        toValue: -150,
-        duration: event.duration || 250,
-        useNativeDriver: true,
-      }).start();
-    });
-
-    const keyboardDidHide = Keyboard.addListener('keyboardWillHide', (event) => {
-      Animated.timing(shift, {
-        toValue: 0,
-        duration: event.duration || 250,
-        useNativeDriver: true,
-      }).start();
-    });
-
-    return () => {
-      keyboardDidShow.remove();
-      keyboardDidHide.remove();
-    };
-  }, []);
+  const finishAuthNavigation = () => {
+    if (returnTo) {
+      navigation.replace(returnTo);
+    } else {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: Routes.Main }],
+      });
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Ошибка', 'Пожалуйста, заполните все поля');
+      Alert.alert(t('login.fillAllTitle'), t('login.fillAllMessage'));
+      return;
+    }
+    try {
+      setLoading(true);
+      await login(email.trim(), password);
+      finishAuthNavigation();
+    } catch (error: any) {
+      Alert.alert(t('login.invalidTitle'), t('login.invalidMessage'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgot = async () => {
+    const target = email.trim();
+
+    if (!target) {
+      Alert.alert(
+        t('login.needEmailTitle'),
+        t('login.needEmailMessage')
+      );
       return;
     }
 
     try {
-      await login(email, password);
-
-      if (returnTo) {
-        navigation.replace(returnTo);
-      } else {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Main' }],
-        });
-      }
-    } catch (error) {
-      Alert.alert('Ошибка входа', 'Неверные данные');
+      await auth().sendPasswordResetEmail(target);
+      Alert.alert(
+        t('login.sentTitle'),
+        `${t('login.sentMessagePrefix')} ${target}. ${t('login.sentMessageSuffix')}`
+      );
+    } catch (err: any) {
+      const msg =
+        err?.code === 'auth/invalid-email'
+          ? t('login.invalidEmail')
+          : err?.code === 'auth/user-not-found'
+            ? t('login.notFound')
+            : err?.message || t('login.sendFailed');
+      Alert.alert(t('common.error'), msg);
     }
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <Animated.View style={[styles.animatedContainer, { transform: [{ translateY: shift }] }]}>
-                    <GradientHeader title="" showBackButton = {true} />
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <GradientHeader title="" showBackButton />
 
-        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-          <View style={styles.container}>
-            <LottieView
-              source={require('../../../assets/animations/loginLottie.json')}
-              autoPlay
-              loop
-              style={styles.animation}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Иллюстрация / Лотти */}
+        <LottieView
+          source={require('../../../assets/animations/loginLottie.json')}
+          autoPlay
+          loop
+          style={styles.animation}
+        />
+
+        <Text style={styles.title}>{t('login.title')}</Text>
+        <Text style={styles.subtitle}>
+          {t('login.subtitle')}
+        </Text>
+
+        {/* Email */}
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            placeholder={t('login.email')}
+            placeholderTextColor="#9E9E9E"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            returnKeyType="next"
+          />
+        </View>
+
+        {/* Пароль */}
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            placeholder={t('login.password')}
+            placeholderTextColor="#9E9E9E"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={secure}
+            returnKeyType="done"
+          />
+          <TouchableOpacity
+            style={styles.eye}
+            onPress={() => setSecure((s) => !s)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.eyeText}>{secure ? '👁‍🗨' : '🙈'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Кнопка входа */}
+        <TouchableOpacity
+          style={[styles.button, loading && { opacity: 0.7 }]}
+          disabled={loading}
+          onPress={handleLogin}
+          activeOpacity={0.9}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>{t('login.signIn')}</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.telegramButton}
+          onPress={() => setTelegramVisible(true)}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.telegramButtonText}>{t('login.telegram')}</Text>
+        </TouchableOpacity>
+
+        {/* Ссылка на регистрацию */}
+
+        <View style={styles.divider} />
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate(Routes.Register)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.link}>
+            {t('login.noAccount')} <Text style={styles.linkAccent}>{t('login.register')}</Text>
+          </Text>
+
+          <TouchableOpacity onPress={handleForgot} activeOpacity={0.7}>
+            <View style={styles.divider} />
+
+            <Text style={styles.forgot}>{t('login.forgot')}</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+
+        <TelegramLoginWebView
+          visible={telegramVisible}
+          onClose={() => setTelegramVisible(false)}
+          onAuthSuccess={finishAuthNavigation}
+        />
+
+          {/* <View style={{ marginTop: 12 }}>
+            <SocialAuthButtons
+              onGoogle={handleGoogle}
+              onApple={handleApple}
+              loading={submitting}
+              disabled={submitting}
+              compact
             />
-
-            <Text style={styles.title}>Вход</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Пароль"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
-              <Text style={styles.buttonText}>Войти</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.link}>Нет аккаунта? Зарегистрироваться</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </Animated.View>
-    </TouchableWithoutFeedback>
+          </View> */}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
+const INPUT_HEIGHT = 52;
+const RADIUS = 14;
+
 const styles = StyleSheet.create({
-  animatedContainer: {
+  root: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
   },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    backgroundColor: 'white',
-  },
-  container: {
-    top: -80,
-    padding: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  input: {
-    backgroundColor: '#fff',
-    padding: 14,
-    borderRadius: 12,
-    fontSize: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  button: {
-    backgroundColor: '#E53935',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  link: {
-    textAlign: 'center',
-    color: '#6C63FF',
-    fontWeight: '600',
-    marginTop: 12,
+  content: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    paddingTop: 8,
   },
   animation: {
-    width: 200,
-    height: 200,
+    width: 180,
+    height: 180,
     alignSelf: 'center',
-    marginBottom: 20,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+
+  title: {
+    ...Typography.title,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  subtitle: {
+    ...Typography.subtitle,
+    textAlign: 'center',
+    color: '#6B7280',
+    marginTop: 8,
+    marginBottom: 16,
+    alignSelf: 'center',
+    maxWidth: '90%',
+  },
+
+  inputWrapper: {
+    position: 'relative',
+    marginBottom: 14,
+  },
+  input: {
+    height: INPUT_HEIGHT,
+    borderRadius: RADIUS,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    fontFamily: Font.regular,
+    fontSize: 15,
+    color: '#111827',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  eye: {
+    position: 'absolute',
+    right: 12,
+    top: (INPUT_HEIGHT - 24) / 2,
+  },
+  eyeText: {
+    fontSize: 16,
+  },
+
+  button: {
+    backgroundColor: Colors.brand ?? '#E53935',
+    height: 50,
+    borderRadius: RADIUS + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    marginBottom: 12,
+    // лёгкая тень
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  buttonText: {
+    fontFamily: Font.bold,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  telegramButton: {
+    height: 50,
+    borderRadius: RADIUS + 2,
+    borderWidth: 1,
+    borderColor: '#DCE2EA',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  telegramButtonText: {
+    fontFamily: Font.semibold,
+    color: '#1F2937',
+    fontSize: 15,
+  },
+
+  link: {
+    textAlign: 'center',
+    color: '#6B7280',
+    fontFamily: Font.regular,
+    fontSize: 15,
+  },
+  linkAccent: {
+    color: Colors.brand ?? '#E53935',
+    fontFamily: Font.bold,
+  },
+  forgot: {
+    textAlign: 'center',
+    color: Colors.brand,
+    fontFamily: Font.bold,
+    marginBottom: 8,
+    paddingTop: 0,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 16,
+    alignSelf: 'stretch',
   },
 });
 

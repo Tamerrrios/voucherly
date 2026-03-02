@@ -1,10 +1,9 @@
 // AuthRedirectScreen.js
 import React, { useEffect } from 'react';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { Navigation } from '../navigation/Navigation';
+import { Routes } from '../navigation/types';
 
 const AuthRedirectScreen = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
   const { returnTo } = route.params || {};
 
   useEffect(() => {

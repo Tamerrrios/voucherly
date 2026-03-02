@@ -1,62 +1,83 @@
 import React from 'react';
 import { ScrollView, Text, View, StyleSheet } from 'react-native';
 import GradientHeader from '../components/GradientHeader'; // наш кастомный header
+import { useLocalization } from '../context/LocalizationContext';
 
 
 
 const PrivacyPolicyScreen = () => {
+  const { language } = useLocalization();
+
+  const copy = {
+    ru: {
+      title: 'Политика конфиденциальности',
+      intro:
+        'Приложение Voucherly уважает вашу конфиденциальность. Настоящая политика объясняет, как мы собираем, используем и защищаем ваши персональные данные.',
+      sections: [
+        { h: '1. Общие положения', b: 'Политика составлена в соответствии с законодательством Республики Узбекистан. Используя приложение, вы соглашаетесь с её условиями.' },
+        { h: '2. Какие данные мы собираем', b: 'Мы можем собирать имя, email, номер телефона, историю заказов и технические данные устройства.' },
+        { h: '3. Как мы используем данные', b: 'Данные используются для регистрации, оформления заказов, отображения ваучеров, поддержки и улучшения сервиса.' },
+        { h: '4. Защита данных', b: 'Данные хранятся в защищённой инфраструктуре и передаются по защищённым каналам.' },
+        { h: '5. Передача третьим лицам', b: 'Мы не передаём персональные данные третьим лицам без законных оснований или вашего согласия.' },
+        { h: '6. Хранение данных', b: 'Данные хранятся столько, сколько необходимо для целей сервиса и требований закона.' },
+        { h: '7. Ваши права', b: 'Вы можете запросить доступ, исправление или удаление данных через контакты поддержки.' },
+        { h: '8. Изменения политики', b: 'Мы можем обновлять политику. Актуальная версия всегда доступна на этой странице.' },
+      ],
+      updated: 'Дата последнего обновления: 28 февраля 2026',
+    },
+    uz: {
+      title: 'Maxfiylik siyosati',
+      intro:
+        'Voucherly ilovasi sizning maxfiyligingizni hurmat qiladi. Ushbu siyosat shaxsiy ma’lumotlaringiz qanday yig‘ilishi, ishlatilishi va himoyalanishini tushuntiradi.',
+      sections: [
+        { h: '1. Umumiy qoidalar', b: 'Siyosat O‘zbekiston Respublikasi qonunchiligiga muvofiq tuzilgan. Ilovadan foydalanish orqali siz shartlarga rozilik bildirasiz.' },
+        { h: '2. Qaysi ma’lumotlar yig‘iladi', b: 'Ism, email, telefon raqami, buyurtmalar tarixi va qurilma texnik ma’lumotlari yig‘ilishi mumkin.' },
+        { h: '3. Ma’lumotlardan foydalanish', b: 'Ma’lumotlar ro‘yxatdan o‘tish, buyurtmalar, vaucherlarni ko‘rsatish, qo‘llab-quvvatlash va servisni yaxshilash uchun ishlatiladi.' },
+        { h: '4. Ma’lumotlarni himoya qilish', b: 'Ma’lumotlar himoyalangan infratuzilmada saqlanadi va xavfsiz kanallar orqali uzatiladi.' },
+        { h: '5. Uchinchi shaxslarga uzatish', b: 'Qonuniy asos yoki roziligingiz bo‘lmasa, ma’lumotlar uchinchi shaxslarga berilmaydi.' },
+        { h: '6. Saqlash muddati', b: 'Ma’lumotlar xizmat maqsadlari va qonun talablari uchun zarur muddatda saqlanadi.' },
+        { h: '7. Huquqlaringiz', b: 'Qo‘llab-quvvatlash orqali ma’lumotlarga kirish, tuzatish yoki o‘chirishni so‘rashingiz mumkin.' },
+        { h: '8. Siyosatdagi o‘zgarishlar', b: 'Siyosat vaqti-vaqti bilan yangilanishi mumkin. Amaldagi versiya shu sahifada bo‘ladi.' },
+      ],
+      updated: 'So‘nggi yangilanish sanasi: 2026-yil 28-fevral',
+    },
+    en: {
+      title: 'Privacy Policy',
+      intro:
+        'Voucherly respects your privacy. This policy explains how we collect, use, and protect your personal data.',
+      sections: [
+        { h: '1. General provisions', b: 'This policy is prepared in accordance with the laws of the Republic of Uzbekistan. By using the app, you agree to these terms.' },
+        { h: '2. Data we collect', b: 'We may collect your name, email, phone number, order history, and technical device information.' },
+        { h: '3. How we use data', b: 'Data is used for registration, order processing, voucher display, support, and service improvement.' },
+        { h: '4. Data protection', b: 'Data is stored in protected infrastructure and transferred through secure channels.' },
+        { h: '5. Third-party sharing', b: 'We do not share personal data with third parties without legal grounds or your consent.' },
+        { h: '6. Data retention', b: 'Data is retained as long as necessary for service purposes and legal requirements.' },
+        { h: '7. Your rights', b: 'You can request access, correction, or deletion of your data via support contacts.' },
+        { h: '8. Policy updates', b: 'We may update this policy from time to time. The latest version is always available on this page.' },
+      ],
+      updated: 'Last updated: February 28, 2026',
+    },
+  }[language];
+
   return (
     <View style={styles.container}>
             <GradientHeader title="" showBackButton = {true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Политика конфиденциальности</Text>
+        <Text style={styles.title}>{copy.title}</Text>
 
         <Text style={styles.section}>
-          Приложение Voucherly, действующее на территории Республики Узбекистан, уважает вашу конфиденциальность. Настоящая политика объясняет, как мы собираем, используем и защищаем ваши персональные данные.
+          {copy.intro}
         </Text>
 
-        <Text style={styles.subTitle}>1. Общие положения</Text>
-        <Text style={styles.section}>
-          Настоящая политика составлена в соответствии с Законом Республики Узбекистан "О персональных данных". Используя приложение Voucherly, вы соглашаетесь с условиями этой политики.
-        </Text>
+        {copy.sections.map((section) => (
+          <View key={section.h}>
+            <Text style={styles.subTitle}>{section.h}</Text>
+            <Text style={styles.section}>{section.b}</Text>
+          </View>
+        ))}
 
-        <Text style={styles.subTitle}>2. Какие данные мы собираем</Text>
-        <Text style={styles.section}>
-          Мы можем собирать следующие категории данных: имя, фамилия, номер телефона, адрес электронной почты, история заказов, технические данные устройства (IP-адрес, версия ОС и др.).
-        </Text>
-
-        <Text style={styles.subTitle}>3. Как мы используем данные</Text>
-        <Text style={styles.section}>
-          Ваши данные используются исключительно для регистрации, покупки ваучеров, отображения заказов, улучшения качества сервиса, обратной связи и отправки уведомлений (по согласию).
-        </Text>
-
-        <Text style={styles.subTitle}>4. Как мы защищаем ваши данные</Text>
-        <Text style={styles.section}>
-          Все данные хранятся на защищённых серверах Firebase (Google). Мы используем SSL-шифрование и ограниченный доступ сотрудников к данным.
-        </Text>
-
-        <Text style={styles.subTitle}>5. Передача третьим лицам</Text>
-        <Text style={styles.section}>
-          Мы не передаём ваши данные третьим лицам без вашего согласия, за исключением случаев, предусмотренных законодательством Республики Узбекистан.
-        </Text>
-
-        <Text style={styles.subTitle}>6. Хранение данных</Text>
-        <Text style={styles.section}>
-          Персональные данные хранятся столько, сколько это необходимо для выполнения целей, указанных в данной политике, либо в пределах, установленных законом.
-        </Text>
-
-        <Text style={styles.subTitle}>7. Ваши права</Text>
-        <Text style={styles.section}>
-          Вы имеете право запросить доступ, изменение или удаление ваших персональных данных, написав нам на email, указанный в приложении.
-        </Text>
-
-        <Text style={styles.subTitle}>8. Изменения политики</Text>
-        <Text style={styles.section}>
-          Мы можем время от времени обновлять данную политику. Все изменения публикуются на этой странице.
-        </Text>
-
-        <Text style={styles.section}>Дата последнего обновления: 29 мая 2025</Text>
+        <Text style={styles.section}>{copy.updated}</Text>
       </ScrollView>
     </View>
   );

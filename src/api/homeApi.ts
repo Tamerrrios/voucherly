@@ -1,6 +1,7 @@
 
 
 // import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { Platform } from 'react-native';
 import { firestore } from '../firebase/firebase';
 import storage from '@react-native-firebase/storage';
 
@@ -95,14 +96,34 @@ export const searchPartners = async (searchTerm: string) => {
   }
 };
 
-export const uploadImageToFirebaseAlt = async (uri: string): Promise<string> => {
-  if (!uri.startsWith('file://')) {
-    uri = 'file://' + uri;
+
+export const uploadImageToFirebaseAlt = async (
+  uri: string,
+  storagePath: string,
+): Promise<string> => {
+  // исходный uri лучше не трогать — RNFirebase сам съест file://
+  let localPath = uri;
+
+  // иногда приходит без file:// — добавим
+  if (!localPath.startsWith('file://')) {
+    localPath = 'file://' + localPath;
   }
 
-  const filename = uri.substring(uri.lastIndexOf('/') + 1);
-  const reference = storage().ref(`uploads/${filename}`);
+  // вытащим расширение
+  const raw = localPath.split('?')[0];     // отрежем query
+  const ext = raw.split('.').pop() || 'jpg';
 
-  await reference.putFile(uri);
-  return await reference.getDownloadURL();
+  // итоговый путь в бакете
+  const refPath = `${storagePath}.${ext}`;
+  const ref = storage().ref(refPath);
+
+  console.log('STORAGE_UPLOAD', { localPath, refPath });
+
+  // если putFile упадёт — вылетит ошибка
+  await ref.putFile(localPath);
+
+  // если файла нет по refPath — здесь как раз будет [object-not-found]
+  const url = await ref.getDownloadURL();
+  console.log('STORAGE_URL', url);
+  return url;
 };

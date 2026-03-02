@@ -18,15 +18,60 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProgressHeader from '../components/ProgressHeader';
 import { useOrder } from '../context/OrderContext';
-
+import { Navigation } from '../navigation/Navigation';
+import { Routes } from '../navigation';
+import { useLocalization } from '../context/LocalizationContext';
 
 const ContactScreen = () => {
+  const { language } = useLocalization();
   const [phone, setPhone] = useState('');
   const [contacts, setContacts] = useState<any[]>([]);
   const navigation = useNavigation();
   const { setOrder } = useOrder();
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const copy = {
+    ru: {
+      noAccess: 'Нет доступа',
+      allowContacts: 'Разрешите доступ к контактам в настройках телефона.',
+      error: 'Ошибка',
+      loadFailed: 'Не удалось загрузить контакты',
+      title: '📱 Укажите получателя',
+      placeholder: 'Введите номер телефона',
+      contacts: 'Контакты из телефона',
+      noNumber: 'Нет номера',
+      noName: 'Без имени',
+      continue: 'Продолжить',
+      steps: ['Медиа', 'Оплата', 'Поделиться'],
+    },
+    uz: {
+      noAccess: 'Ruxsat yo‘q',
+      allowContacts: 'Telefon sozlamalarida kontaktlarga ruxsat bering.',
+      error: 'Xatolik',
+      loadFailed: 'Kontaktlarni yuklab bo‘lmadi',
+      title: '📱 Qabul qiluvchini kiriting',
+      placeholder: 'Telefon raqamini kiriting',
+      contacts: 'Telefon kontaktlari',
+      noNumber: 'Raqam yo‘q',
+      noName: 'Nomsiz',
+      continue: 'Davom etish',
+      steps: ['Media', 'To‘lov', 'Ulashish'],
+    },
+    en: {
+      noAccess: 'No access',
+      allowContacts: 'Allow access to contacts in phone settings.',
+      error: 'Error',
+      loadFailed: 'Unable to load contacts',
+      title: '📱 Enter recipient',
+      placeholder: 'Enter phone number',
+      contacts: 'Phone contacts',
+      noNumber: 'No number',
+      noName: 'No name',
+      continue: 'Continue',
+      steps: ['Media', 'Payment', 'Share'],
+    },
+  }[language];
 
 
   const isUzbekPhone = (num: string) => {
@@ -45,7 +90,7 @@ const ContactScreen = () => {
   };
 
   const fetchContacts = async () => {
-    setIsLoading(true); // Добавьте useState для loading состояния
+    setIsLoading(true);
     try {
       const permission = await Contacts.checkPermission();
 
@@ -53,15 +98,15 @@ const ContactScreen = () => {
         const result = await Contacts.requestPermission();
         if (result !== 'authorized') {
           Alert.alert(
-            'Нет доступа',
-            'Разрешите доступ к контактам в настройках телефона.'
+            copy.noAccess,
+            copy.allowContacts
           );
           return;
         }
       } else if (permission === 'denied') {
         Alert.alert(
-          'Нет доступа',
-          'Разрешите доступ к контактам в настройках телефона.'
+          copy.noAccess,
+          copy.allowContacts
         );
         return;
       }
@@ -74,11 +119,11 @@ const ContactScreen = () => {
         (contact) => contact.phoneNumbers && contact.phoneNumbers.length > 0
       );
 
-      console.log('Загружено контактов:', filtered.length); // Для отладки
+      console.log('Загружено контактов:', filtered.length); 
       setContacts(filtered);
     } catch (err) {
       console.error('Ошибка при получении контактов:', err);
-      Alert.alert('Ошибка', 'Не удалось загрузить контакты');
+      Alert.alert(copy.error, copy.loadFailed);
     } finally {
       setIsLoading(false);
     }
@@ -92,20 +137,20 @@ const ContactScreen = () => {
   const handleNext = () => {
     if (phone.trim()) {
       setOrder({ receiverPhone: phone });
-      navigation.navigate('Media');
+      Navigation.navigate(Routes.MediaScreen);
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
-      <ProgressHeader currentStep={1} steps={['Получатель', 'Медиа', 'Оплата']} />
+      <ProgressHeader currentStep={1} steps={copy.steps} />
 
-      <Text style={styles.title}>📱 Укажите получателя</Text>
+      <Text style={styles.title}>{copy.title}</Text>
 
       <View style={{ position: 'relative', marginHorizontal: 0 }}>
         <TextInput
           style={styles.input}
-          placeholder="Введите номер телефона"
+          placeholder={copy.placeholder}
           placeholderTextColor="#999"
           keyboardType="phone-pad"
           value={phone}
@@ -124,7 +169,7 @@ const ContactScreen = () => {
         )}
       </View>
 
-      <Text style={styles.subtitle}>Контакты из телефона</Text>
+      <Text style={styles.subtitle}>{copy.contacts}</Text>
       <FlatList
         data={contacts}
         keyExtractor={(item) => item.recordID}
@@ -132,7 +177,7 @@ const ContactScreen = () => {
           const name =
             item.displayName || `${item.givenName || ''} ${item.familyName || ''}`.trim();
 
-          const phone = item.phoneNumbers?.[0]?.number || 'Нет номера';
+          const phone = item.phoneNumbers?.[0]?.number || copy.noNumber;
 
           return (
             <TouchableOpacity
@@ -140,7 +185,7 @@ const ContactScreen = () => {
               onPress={() => setPhone(phone)}
             >
               <View style={styles.contactText}>
-                <Text style={styles.contactName}>{name || 'Без имени'}</Text>
+                <Text style={styles.contactName}>{name || copy.noName}</Text>
                 <Text style={styles.contactPhone}>{phone}</Text>
               </View>
             </TouchableOpacity>
@@ -156,7 +201,7 @@ const ContactScreen = () => {
         onPress={handleNext}
         disabled={!isUzbekPhone(phone)}
       >
-        <Text style={styles.buttonText}>Продолжить</Text>
+        <Text style={styles.buttonText}>{copy.continue}</Text>
       </TouchableOpacity>
     </View>
   );

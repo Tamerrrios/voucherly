@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,298 +6,724 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Platform,
+  AppState,
+  Image,
 } from 'react-native';
-import ProgressHeader from '../components/ProgressHeader';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useOrder } from '../context/OrderContext';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { Image } from 'react-native-animatable';
-
+import { useFocusEffect } from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
 import { auth } from '../firebase/firebase';
-import { v4 as uuidv4 } from 'uuid';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BackButton from '../components/BackButton';
+
+import { useOrder } from '../context/OrderContext';
+import { Navigation } from '../navigation/Navigation';
+import { Routes } from '../navigation/types';
+import { bumpVouchers } from '../utils/updateStats';
+import { uploadImageToFirebaseAlt } from '../api/homeApi';
+import { LogBox } from 'react-native';
+import { useLocalization } from '../context/LocalizationContext';
+
+
+const FEE_RATE = 0.0;
+
+const COPY = {
+  ru: {
+    step: 'Шаг 2 из 2',
+    headerTitle: 'Подтверждение заказа',
+    title: 'Проверьте детали перед оплатой',
+    infoTitle: 'Как получатель увидит подарок?',
+    infoText: 'После оплаты мы создадим персональную ссылку. Отправьте её в Telegram, WhatsApp, SMS или по e-mail.',
+    voucher: 'Ваучер',
+    media: '📎 Медиа',
+    mediaBoth: 'Изображение + комментарий',
+    mediaImage: 'Изображение',
+    mediaComment: 'Комментарий',
+    summary: '🧾 Резюме',
+    amount: 'Сумма',
+    fee: 'Комиссия',
+    total: 'Итого',
+    agreeText: 'Я понимаю, что получателя укажу после оплаты — отправив персональную ссылку.',
+    payAndGetLink: 'Pay and Get Link',
+    verifyEmailBtn: 'Подтвердите email',
+    emailTitle: 'Подтверждение email',
+    emailNeedForOrder: 'Подтвердите почту, чтобы оформить заказ.',
+    emailNeedToContinue: 'Подтвердите почту, чтобы продолжить.',
+    resend: 'Отправить ещё раз',
+    done: 'Готово',
+    emailSentAgain: 'Письмо отправлено повторно.',
+    error: 'Ошибка',
+    emailSendError: 'Не удалось отправить письмо.',
+    ok: 'Ок',
+    orderDataMissing: 'Данные заказа не найдены.',
+    confirmationRequired: 'Требуется подтверждение',
+    checkRequired: 'Поставьте галочку.',
+    orderFailed: 'Не удалось оформить заказ. Попробуйте ещё раз.',
+  },
+  uz: {
+    step: '2/2-qadam',
+    headerTitle: 'Buyurtmani tasdiqlash',
+    title: 'To‘lovdan oldin tafsilotlarni tekshiring',
+    infoTitle: 'Qabul qiluvchi sovg‘ani qanday ko‘radi?',
+    infoText: 'To‘lovdan so‘ng biz shaxsiy havola yaratamiz. Uni Telegram, WhatsApp, SMS yoki e-mail orqali yuboring.',
+    voucher: 'Vaucher',
+    media: '📎 Media',
+    mediaBoth: 'Rasm + izoh',
+    mediaImage: 'Rasm',
+    mediaComment: 'Izoh',
+    summary: '🧾 Xulosa',
+    amount: 'Summa',
+    fee: 'Komissiya',
+    total: 'Jami',
+    agreeText: 'Qabul qiluvchini to‘lovdan keyin shaxsiy havolani yuborish orqali ko‘rsatishimni tushunaman.',
+    payAndGetLink: 'Pay and Get Link',
+    verifyEmailBtn: 'Emailni tasdiqlang',
+    emailTitle: 'Email tasdiqlash',
+    emailNeedForOrder: 'Buyurtma berish uchun emailingizni tasdiqlang.',
+    emailNeedToContinue: 'Davom etish uchun emailingizni tasdiqlang.',
+    resend: 'Qayta yuborish',
+    done: 'Tayyor',
+    emailSentAgain: 'Xat qayta yuborildi.',
+    error: 'Xatolik',
+    emailSendError: 'Xatni yuborib bo‘lmadi.',
+    ok: 'OK',
+    orderDataMissing: 'Buyurtma ma’lumotlari topilmadi.',
+    confirmationRequired: 'Tasdiqlash talab qilinadi',
+    checkRequired: 'Belgilash katagiga belgi qo‘ying.',
+    orderFailed: 'Buyurtmani rasmiylashtirib bo‘lmadi. Qaytadan urinib ko‘ring.',
+  },
+  en: {
+    step: 'Step 2 of 2',
+    headerTitle: 'Order Confirmation',
+    title: 'Review details before payment',
+    infoTitle: 'How will the recipient see the gift?',
+    infoText: 'After payment we create a personal link. Send it via Telegram, WhatsApp, SMS, or email.',
+    voucher: 'Voucher',
+    media: '📎 Media',
+    mediaBoth: 'Image + comment',
+    mediaImage: 'Image',
+    mediaComment: 'Comment',
+    summary: '🧾 Summary',
+    amount: 'Amount',
+    fee: 'Fee',
+    total: 'Total',
+    agreeText: 'I understand that I will specify the recipient after payment by sending a personal link.',
+    payAndGetLink: 'Pay and Get Link',
+    verifyEmailBtn: 'Verify email',
+    emailTitle: 'Email verification',
+    emailNeedForOrder: 'Verify your email to place an order.',
+    emailNeedToContinue: 'Verify your email to continue.',
+    resend: 'Resend',
+    done: 'Done',
+    emailSentAgain: 'Verification email sent again.',
+    error: 'Error',
+    emailSendError: 'Could not send email.',
+    ok: 'OK',
+    orderDataMissing: 'Order data not found.',
+    confirmationRequired: 'Confirmation required',
+    checkRequired: 'Please check the box.',
+    orderFailed: 'Could not place order. Please try again.',
+  },
+} as const;
 
 
 const CheckoutScreen = () => {
+  const insets = useSafeAreaInsets();
+  const { language } = useLocalization();
+  const t = COPY[language];
+  const { order } = useOrder();
+  const { imageUrl, comment, voucher, partnerName } = order || {};
 
-  const navigation = useNavigation();
-  const { order, resetOrder } = useOrder();
-  const { imageUrl, audioUrl, comment, voucher, partnerName, receiverPhone } = order || {};
+  const [agree, setAgree] = React.useState(true);
+  const subtotal = voucher?.price ?? 0;
+  const fee = Math.round(subtotal * FEE_RATE);
+  const total = subtotal + fee;
+  const [verified, setVerified] = React.useState<boolean>(!!auth().currentUser?.emailVerified); // ★
 
-const generateUniqueVoucherCode = async (): Promise<string> => {
-  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-  const generateCode = () => {
-    let result = '';
-    for (let i = 0; i < 6; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length));
+  const generateUniqueVoucherCode = async (): Promise<string> => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const make = () => `VC-${Array.from({ length: 6 })
+      .map(() => chars[Math.floor(Math.random() * chars.length)])
+      .join('')}`;
+
+    let code = '';
+    let exists = true;
+    while (exists) {
+      code = make();
+      const snap = await firestore()
+        .collection('orders')
+        .where('voucherCode', '==', code)
+        .get();
+      exists = !snap.empty;
     }
-    return `VC-${result}`;
+    return code;
   };
 
-  let voucherCode = '';
-  let exists = true;
+  useFocusEffect(
+    React.useCallback(() => {
+      let alive = true;
 
-  while (exists) {
-    voucherCode = generateCode();
-    const snapshot = await firestore()
-      .collection('orders')
-      .where('voucherCode', '==', voucherCode)
-      .get();
-    exists = !snapshot.empty;
-  }
-
-  return voucherCode;
-};
-
-
-useFocusEffect(
-  React.useCallback(() => {
-    let isActive = true; // для отмены эффекта при уходе с экрана
-
-    const checkUserVerification = async () => {
-      const user = auth().currentUser;
-      if (!user) {
-        if (isActive) {
-          navigation.navigate('AuthRedirect', {
-            returnTo: 'Checkout',
-          });
+      const check = async () => {
+        const user = auth().currentUser;
+        if (!user) {
+          Navigation.navigate(Routes.Login, { returnTo: Routes.Checkout });
+          return;
         }
-        return;
-      }
+        try {
+          await user.reload();
+          if (!alive) return;
+          setVerified(user.emailVerified); // ★ обновляем локальный флаг
 
-      try {
-        await user.reload(); // обновляем данные пользователя
-        if (isActive && !user.emailVerified) {
-          Alert.alert(
-            'Подтверждение email',
-            'Пожалуйста, подтвердите вашу почту, чтобы оформить заказ. Проверьте почтовый ящик и перейдите по ссылке из письма.',
-            [
-              {
-                text: 'Отправить письмо повторно',
-                onPress: async () => {
-                  try {
-                    await user.sendEmailVerification();
-                    Alert.alert('Письмо отправлено', 'Письмо для подтверждения отправлено на ваш email.');
-                  } catch (e) {
-                    Alert.alert('Ошибка', 'Не удалось отправить письмо. Попробуйте позже.');
-                  }
+          if (!user.emailVerified) {
+            Alert.alert(
+              t.emailTitle,
+              t.emailNeedForOrder,
+              [
+                {
+                  text: t.resend,
+                  onPress: async () => {
+                    try {
+                      await user.sendEmailVerification();
+                      Alert.alert(t.done, t.emailSentAgain);
+                    } catch {
+                      Alert.alert(t.error, t.emailSendError);
+                    }
+                  },
                 },
-              },
-              {
-                text: 'Ок',
-                style: 'cancel',
-                onPress: () => navigation.goBack(),
-              },
-            ],
-            { cancelable: false }
-          );
+                { text: t.ok, style: 'cancel' },
+              ],
+              { cancelable: false },
+            );
+          }
+        } catch (e) {
+          console.warn('user.reload error', e);
         }
-      } catch (error) {
-        console.error('Ошибка при обновлении пользователя:', error);
-        // Можно добавить алерт или обработку ошибки
+      };
+
+      check();
+      return () => { alive = false; };
+    }, []),
+  );
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', async (state) => {
+      if (state === 'active') {
+        const user = auth().currentUser;
+        if (user) {
+          await user.reload();
+          setVerified(user.emailVerified);
+        }
       }
-    };
+    });
+    return () => sub.remove();
+  }, []);
 
-    checkUserVerification();
-
-    return () => {
-      isActive = false;
-    };
-  }, [navigation])
-);
   
 const handleConfirm = async () => {
-  console.log('[CONFIRM] Оформление заказа...');
+  console.log('ORDER ON CHECKOUT:', order);
+  console.log('Checkout imageUrl:', imageUrl);
 
-  if (!order || typeof order !== 'object') {
-    Alert.alert('Ошибка', 'Данные заказа не найдены.');
+  if (!verified) {
+    Alert.alert(t.emailTitle, t.emailNeedToContinue);
     return;
   }
 
-  const cleanOrder = Object.fromEntries(
-    Object.entries(order).filter(([_, v]) => v !== undefined)
-  );
-
-  const userID = auth().currentUser?.uid;
+  if (!order || !voucher) {
+    Alert.alert(t.error, t.orderDataMissing);
+    return;
+  }
+  if (!agree) {
+    Alert.alert(t.confirmationRequired, t.checkRequired);
+    return;
+  }
 
   try {
+    const user = auth().currentUser;
+    if (!user) {
+      Navigation.navigate(Routes.Login, { returnTo: Routes.Checkout });
+      return;
+    }
+
+    const userID = user.uid;
+    const userEmail = user.email ?? null;
+    const userName = (user.displayName ?? '').trim() || null;
+
     const voucherCode = await generateUniqueVoucherCode();
-    console.log('[VoucherCode]', voucherCode);
 
-    const docRef = await firestore().collection('orders').add({
+    // ---- 1. Готовим ссылку на картинку ----
+    let attachedImage: string | null = null;
+
+    if (imageUrl) {
+      console.log('DEBUG imageUrl raw:', imageUrl);
+
+      if (/^https?:\/\//.test(imageUrl)) {
+        // вдруг уже URL
+        attachedImage = imageUrl;
+      } else {
+        try {
+          attachedImage = await uploadImageToFirebaseAlt(
+            imageUrl,
+            `orders/${userID}/${voucherCode}`, // 👈 теперь реально используется
+          );
+          console.log('ATTACHED_IMAGE_URL', attachedImage);
+        } catch (err) {
+          console.warn('IMAGE_UPLOAD_ERROR', err);
+          // временно можно показать Alert, потом убрать
+          Alert.alert('UPLOAD_ERROR', String(err));
+          attachedImage = null;
+        }
+      }
+    }
+
+    // ---- 2. Чистим order, убираем локальный imageUrl ----
+    const cleanOrder = Object.fromEntries(
+      Object.entries(order).filter(
+        ([key, v]) => v !== undefined && key !== 'imageUrl',
+      ),
+    );
+
+    // ---- 3. Фиксируем срез ваучера ----
+    const voucherSnap = order?.voucher
+      ? {
+          id: order.voucher.id,
+          title: order.voucher.title,
+          price: order.voucher.price,
+          imageUrl: order.voucher.imageUrl ?? null,
+          stock: order.voucher.stock ?? null,
+        }
+      : null;
+
+    const payload = {
       ...cleanOrder,
-      userID,
-      voucherCode, // 👈 Читаемый код ваучера
-      createdAt: firestore.FieldValue.serverTimestamp(),
-    });
+      voucher: voucherSnap ?? cleanOrder.voucher,
 
-    navigation.navigate('Success', { orderId: docRef.id });
-  } catch (error) {
-    console.error('Ошибка при оформлении:', error);
-    Alert.alert('Ошибка', 'Не удалось оформить заказ. Попробуйте ещё раз.');
+      attachedImage,                 // 👈 тут уже https-URL
+      comment: comment?.trim() || null,
+
+      userID,
+      userEmail,
+      userName,
+
+      amount: subtotal,
+      fee,
+      total,
+      currency: 'UZS',
+
+      voucherCode,
+
+      status: 'created',
+      shared: false,
+      sharedAt: null,
+
+      redeemed: false,
+      redeemedAt: null,
+      redeemedBy: null,
+
+      payProvider: null,
+      payTransactionId: null,
+
+      createdAt: firestore.FieldValue.serverTimestamp(),
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    } as const;
+
+    console.log('FINAL_ORDER_PAYLOAD', payload);
+
+    const docRef = await firestore().collection('orders').add(payload);
+    Navigation.navigate(Routes.Success, { orderId: docRef.id });
+  } catch (e) {
+    console.error('checkout error', e);
+    Alert.alert(t.error, t.orderFailed);
   }
 };
 
-
-
   // const handleConfirm = async () => {
-  //   const cleanOrder = Object.fromEntries(
-  //     Object.entries(order).filter(([_, v]) => v !== undefined)
-  //   );
-  
-  //   const userID = auth().currentUser?.uid;
-  
-  //   try {
-  //     const docRef = await firestore()
-  //       .collection('orders')
-  //       .add({
-  //         ...cleanOrder,
-  //         userID, // 👈 Добавляем userId
-  //         createdAt: firestore.FieldValue.serverTimestamp(),
-  //       });
+  //   // ★ Доп. защита на всякий случай
+  //   if (!verified) {
+  //     Alert.alert('Подтверждение email', 'Подтвердите почту, чтобы продолжить.');
+  //     return;
+  //   }
 
-  //     // await docRef.update({ orderId: docRef.id });
-  //     navigation.navigate('Success', { orderId: docRef.id });
-  //     // navigation.navigate('Success');
-  //   } catch (error) {
-  //     console.error('Ошибка при отправке заказа:', error);
-  //     Alert.alert('Ошибка', 'Не удалось отправить заказ. Попробуйте ещё раз.');
+  //   if (!order || !voucher) {
+  //     Alert.alert('Ошибка', 'Данные заказа не найдены.');
+  //     return;
+  //   }
+  //   if (!agree) {
+  //     Alert.alert('Требуется подтверждение', 'Поставьте галочку.');
+  //     return;
+  //   }
+
+  //   try {
+  //     const user = auth().currentUser;
+  //     if (!user) {
+  //       Navigation.navigate(Routes.Login, { returnTo: Routes.Checkout });
+  //       return;
+  //     }
+
+  //     const userID = user.uid;
+  //     const userEmail = user.email ?? null;
+  //     const userName = (user.displayName ?? '').trim() || null;
+
+  //     const voucherCode = await generateUniqueVoucherCode();
+
+  //     // оставляем только заполненные поля из order
+  //     const cleanOrder = Object.fromEntries(
+  //       Object.entries(order).filter(([, v]) => v !== undefined)
+  //     );
+
+  //     // (опц) зафиксируем срез ваучера в заказе
+  //     const voucherSnap = order?.voucher
+  //       ? {
+  //         id: order.voucher.id,
+  //         title: order.voucher.title,
+  //         price: order.voucher.price,
+  //         imageUrl: order.voucher.imageUrl ?? null,
+  //         stock: order.voucher.stock ?? null,
+  //       }
+  //       : null;
+
+  //     const payload = {
+  //       ...cleanOrder,                          // partnerId, partnerName, comment и т.д.
+  //       voucher: voucherSnap ?? cleanOrder.voucher, // если уже было — не дублируем
+
+  //       userID,
+  //       userEmail,
+  //       userName,
+
+  //       amount: subtotal,
+  //       fee,
+  //       total,
+  //       currency: 'UZS',
+
+  //       voucherCode,
+
+  //       // ключевые статусы/метаданные
+  //       status: 'created',                      // created → paid → refunded/failed → redeemed
+  //       shared: false,
+  //       sharedAt: null,
+
+  //       redeemed: false,
+  //       redeemedAt: null,
+  //       redeemedBy: null,
+
+  //       payProvider: null,
+  //       payTransactionId: null,
+
+  //       createdAt: firestore.FieldValue.serverTimestamp(),
+  //       updatedAt: firestore.FieldValue.serverTimestamp(),
+  //     } as const;
+
+  //     const docRef = await firestore().collection('orders').add(payload);
+  //     // await bumpVouchers(partnerName);
+  //     Navigation.navigate(Routes.Success, { orderId: docRef.id });
+  //   } catch (e) {
+  //     console.error('checkout error', e);
+  //     Alert.alert('Ошибка', 'Не удалось оформить заказ. Попробуйте ещё раз.');
   //   }
   // };
 
+  const payDisabled = !agree || !verified;
+
   return (
-    <View style={styles.wrapper}>
-      <ProgressHeader currentStep={3} steps={['Получатель', 'Медиа', 'Оплата']} />
+    <View style={styles.wrap}>
+      <View style={styles.headerSurface}>
+        <View style={styles.headerGlassLayer} pointerEvents="none" />
+        <View style={[styles.headerInner, { paddingTop: insets.top + 8 }]}>
+          <View style={styles.headerTopRow}>
+            <BackButton onPress={() => Navigation.goBack()} size={34} iconSize={15} />
+            <Text style={styles.headerTitle}>{t.headerTitle}</Text>
+            <View style={styles.headerTopSpacer} />
+          </View>
+          <Text style={styles.stepLabel}>{t.step}</Text>
+          <View style={styles.progressTrack}>
+            <View style={styles.progressFill} />
+          </View>
+        </View>
+        <View style={styles.headerSeparator} />
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View entering={FadeInUp.delay(100).duration(400)}>
-          <Text style={styles.title}>💳 Подтвердите заказ</Text>
+        <Animated.View entering={FadeInUp.duration(350)}>
+          <Text style={styles.title}>{t.title}</Text>
         </Animated.View>
 
-        {/* Voucher Info */}
-        <Animated.View style={styles.card} entering={FadeInUp.delay(200).duration(400)}>
-          <Text style={styles.cardTitle}>🎁 Ваучер</Text>
-          <Text style={styles.cardValue}>
-          {voucher && `${partnerName} - ${voucher.price.toLocaleString('ru-RU')} Сум`}
-            {/* {`${parnertName} - ${voucher.price.toLocaleString('ru-RU')} Сум`} */}
-          </Text>
+        {/* Инфоблок */}
+        <Animated.View style={styles.info} entering={FadeInUp.delay(80).duration(350)}>
+          <Ionicons
+            name="information-circle-outline"
+            size={20}
+            color="#D86559"
+            style={{ marginRight: 8 }}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.infoTitle}>{t.infoTitle}</Text>
+            <Text style={styles.infoText}>{t.infoText}</Text>
+          </View>
         </Animated.View>
 
-        {/* Receiver Info */}
-        <Animated.View style={styles.card} entering={FadeInUp.delay(300).duration(400)}>
-          <Text style={styles.cardTitle}>👤 Получатель</Text>
-          <Text style={styles.cardValue}>{receiverPhone}</Text>
+        {/* Ваучер */}
+        <Animated.View style={styles.card} entering={FadeInUp.delay(140).duration(350)}>
+          <View style={styles.voucherHead}>
+            {!!voucher?.imageUrl && (
+              <Image source={{ uri: voucher.imageUrl }} style={styles.voucherThumb} />
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>{t.voucher}</Text>
+              <Text style={styles.cardValue}>{partnerName}</Text>
+            </View>
+          </View>
+          <Text style={styles.voucherAmount}>{subtotal.toLocaleString('ru-RU')} сум</Text>
         </Animated.View>
 
-        {/* Media info */}
+        {/* Медиа */}
         {(imageUrl || comment) && (
-          <Animated.View style={styles.card} entering={FadeInUp.delay(400).duration(400)}>
-            <Text style={styles.cardTitle}>📎 Медиа</Text>
+          <Animated.View style={styles.card} entering={FadeInUp.delay(200).duration(350)}>
+            <Text style={styles.cardTitle}>{t.media}</Text>
             <Text style={styles.cardValue}>
               {imageUrl && comment
-                ? '1 изображение и комментарий'
+                ? t.mediaBoth
                 : imageUrl
-                  ? '1 изображение'
-                  : 'Комментарий'}
+                  ? t.mediaImage
+                  : t.mediaComment}
             </Text>
           </Animated.View>
         )}
-        <Animated.View style={styles.card} entering={FadeInUp.delay(500).duration(400)}>
-          <Text style={styles.cardTitle}>💰 Способ оплаты</Text>
-          <TouchableOpacity style={styles.paymentBtn}>
-            <Image
-              source={require('../../assets/images/atm-card.png')}
-              style={{ width: 18, height: 18 }}
-              resizeMode="contain"
-            />
-            <Text style={styles.paymentText}>Карта (UzCard / Humo)</Text>
-          </TouchableOpacity>
+
+        {/* Резюме */}
+        <Animated.View style={styles.summaryCard} entering={FadeInUp.delay(320).duration(350)}>
+          <Text style={styles.cardTitle}>{t.summary}</Text>
+          <View style={styles.row}>
+            <Text style={styles.muted}>{t.amount}</Text>
+            <Text style={styles.bold}>{subtotal.toLocaleString('ru-RU')} сум</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.muted}>{t.fee}</Text>
+            <Text style={styles.bold}>{fee.toLocaleString('ru-RU')} сум</Text>
+          </View>
+          <View style={[styles.row, { marginTop: 6 }]}>
+            <Text style={styles.totalLabel}>{t.total}</Text>
+            <Text style={styles.totalValue}>{total.toLocaleString('ru-RU')} сум</Text>
+          </View>
         </Animated.View>
 
-        <View style={{ height: 120 }} />
+        {/* Чекбокс */}
+        <Animated.View style={styles.agree} entering={FadeInUp.delay(380).duration(350)}>
+          <TouchableOpacity
+            style={[styles.check, agree && styles.checkOn]}
+            onPress={() => setAgree((s) => !s)}
+            activeOpacity={0.8}
+          >
+            {agree ? <Text style={styles.checkTick}>✓</Text> : null}
+          </TouchableOpacity>
+          <Text style={styles.agreeText}>{t.agreeText}</Text>
+        </Animated.View>
+
+        <View style={{ height: 140 }} />
       </ScrollView>
 
-      {/* Confirm button */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm}>
-          <Text style={styles.confirmText}>Подтвердить заказ</Text>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 8, 20) }]}>
+        <TouchableOpacity
+          style={[styles.confirmBtn, payDisabled && { opacity: 0.6 }]}
+          onPress={handleConfirm}
+          disabled={payDisabled} // ★ дизейблим кнопку
+          activeOpacity={0.9}
+        >
+          <Text style={styles.confirmText}>
+            {verified ? t.payAndGetLink : t.verifyEmailBtn}
+          </Text>
         </TouchableOpacity>
+        {/* <View style={styles.footer}>
+        <TouchableOpacity
+          style={[styles.confirmBtn, !agree && { opacity: 0.6 }]}
+          onPress={handleConfirm}
+          disabled={!agree}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.confirmText}>Оплатить и получить ссылку</Text>
+        </TouchableOpacity> */}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
-  },
-  container: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-    paddingTop: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 20,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
+  wrap: { flex: 1, backgroundColor: '#F7F7F7' },
+  headerSurface: {
+    backgroundColor: 'rgba(255,255,255,0.86)',
     shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 14,
+    elevation: 7,
+    zIndex: 10,
+    overflow: 'hidden',
   },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 4,
+  headerGlassLayer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
-  cardValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
+  headerInner: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
-  paymentBtn: {
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
+    marginBottom: 10,
   },
-  paymentText: {
-    fontSize: 15,
-    color: '#333',
+  headerTopSpacer: {
+    width: 34,
+    height: 34,
+  },
+  stepLabel: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#7E818A',
+    marginBottom: 7,
+    letterSpacing: 0.3,
   },
+  progressTrack: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#E8E9ED',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#E53935',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 8,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#23242A',
+  },
+  headerSeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(120,126,138,0.25)',
+  },
+  container: { paddingHorizontal: 18, paddingTop: 22, paddingBottom: 24 },
+  title: { fontSize: 18, fontWeight: '600', marginBottom: 16, color: '#3E424B' },
+
+  info: {
+    flexDirection: 'row',
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: '#FFF5F3',
+    marginBottom: 14,
+    alignItems: 'flex-start',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  infoTitle: { fontSize: 14, fontWeight: '700', color: '#3B3E46' },
+  infoText: { marginTop: 6, color: '#70747F', lineHeight: 19, fontSize: 13 },
+
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 7 },
+    shadowRadius: 14,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F0F1F4',
+  },
+  voucherHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  voucherThumb: {
+    width: 54,
+    height: 54,
+    borderRadius: 14,
+    marginRight: 12,
+    backgroundColor: '#F2F3F6',
+  },
+  cardTitle: { fontSize: 14, fontWeight: '600', color: '#7A7E88', marginBottom: 4 },
+  cardValue: { fontSize: 18, fontWeight: '700', color: '#23262E' },
+  voucherAmount: {
+    marginTop: 14,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#22252D',
+  },
+
+  summaryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 7 },
+    shadowRadius: 14,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F0F1F4',
+  },
+
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  muted: { color: '#7E838F', fontSize: 15 },
+  bold: { fontWeight: '700', color: '#333' },
+  totalLabel: { fontSize: 17, fontWeight: '800', color: '#17191F' },
+  totalValue: { fontSize: 20, fontWeight: '800', color: '#17191F' },
+
+  agree: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 10, marginBottom: 8 },
+  check: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#E53935',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 1,
+    backgroundColor: '#fff',
+  },
+  checkOn: { backgroundColor: '#E53935', borderColor: '#D96E63' },
+  checkTick: { color: '#fff', fontWeight: '800', lineHeight: Platform.OS === 'ios' ? 18 : 16 },
+  agreeText: { flex: 1, color: '#4F5562', lineHeight: 20 },
+
   footer: {
     position: 'absolute',
-    bottom: 30,
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    backgroundColor: 'rgba(247,247,247,0.95)',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E4E6EB',
   },
   confirmBtn: {
     backgroundColor: '#E53935',
-    paddingVertical: 14,
-    borderRadius: 16,
+    minHeight: 60,
+    borderRadius: 999,
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  confirmText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  confirmText: { color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.2 },
 });
 
 export default CheckoutScreen;

@@ -1,46 +1,49 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
-  TouchableOpacity,
-  ImageBackground,
   Platform,
   StatusBar,
-  Linking,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { Image } from 'react-native-animatable';
 import BackButton from './BackButton';
+import { Text } from 'react-native-animatable';
 
 interface SupplierHeaderProps {
-  bannerImg: string;
+  bannerImg?: string; // теперь опционально
   name: string;
   description?: string;
-  city?: string;
-  phone?: string;
-  instagram?: string;
 }
 
 const SupplierHeader: React.FC<SupplierHeaderProps> = ({
   bannerImg,
   name,
   description = '',
-  city = '',
-  phone = '',
-  instagram = '',
 }) => {
   const navigation = useNavigation();
 
   return (
-    <ImageBackground
-      source={{ uri: bannerImg }}
-      style={styles.header}
-      imageStyle={styles.image}>
-      <View style={styles.overlay}></View>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#E53935', '#FF7043']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
 
+      {bannerImg ? (
+        <View style={styles.imageOverlay}>
+          <View
+            style={[
+              StyleSheet.absoluteFillObject,
+              { backgroundColor: 'rgba(0,0,0,0.35)' },
+            ]}
+          />
+        </View>
+      ) : null}
+
+      {/* Кнопка назад */}
       <BackButton
         onPress={() => navigation.goBack()}
         size={30}
@@ -48,109 +51,44 @@ const SupplierHeader: React.FC<SupplierHeaderProps> = ({
         style={{ position: 'absolute', top: 50, left: 20 }}
       />
 
-      <View style={styles.headerContent}>
-
-        <Text style={styles.brandName}>{name}</Text>
-        {description ? <Text style={styles.description}>{description}</Text> : null}
+      {/* Контент */}
+      <View style={styles.textContainer}>
+        <Text style={styles.name}>{name}</Text>
+        {!!description && (
+          <Text style={styles.desc} numberOfLines={2}>
+            {description}
+          </Text>
+        )}
       </View>
-    </ImageBackground>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  header: {
+  container: {
     height: 200,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     overflow: 'hidden',
     justifyContent: 'flex-end',
-    zIndex: 1,
   },
-  overlay: {
+  imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'flex-end',
-    padding: 16,
   },
-  image: {
-    resizeMode: 'stretch',
-    width: '100%',
-    height: '100%',
+  textContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 26,
   },
-  backBtn: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 40,
-    left: 16,
-    zIndex: 10,
-    padding: 6,
-    borderRadius: 20,
-  },
-  headerContent: {
-    padding: 16,
-  },
-  brandName: {
+  name: {
     fontSize: 22,
     fontWeight: '700',
     color: '#fff',
-    marginBottom: 5,
   },
-  description: {
+  desc: {
     fontSize: 14,
-    color: '#eee',
-    marginBottom: 8,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  infoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  infoText: {
-    color: '#fff',
-    fontSize: 13,
-  },
-  icon: {
-    width: 20,
-    height: 20,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 6,
   },
 });
 
 export default SupplierHeader;
-
-{/* <View style={styles.infoRow}>
-          {city ? (
-            <TouchableOpacity style={styles.infoButton}>
-              <Image
-                source={require('../../assets/images/map.png')}
-                style={styles.icon}
-              />
-              <Text style={styles.infoText}>{city}</Text>
-            </TouchableOpacity>
-          ) : null}
-          {phone ? (
-            <TouchableOpacity style={styles.infoButton}>
-               <Image
-                source={require('../../assets/images/phone-call.png')}
-                style={styles.icon}
-              />
-
-              <Text style={styles.infoText}>{phone}</Text>
-            </TouchableOpacity>
-          ) : null}
-          {instagram ? (
-            <TouchableOpacity
-              style={styles.infoButton}
-              onPress={() => Linking.openURL(instagram)}
-            >
-               <Image
-                source={require('../../assets/images/instagram.png')}
-                style={styles.icon}
-              />
-              <Text style={styles.infoText}>Instagram</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View> */}

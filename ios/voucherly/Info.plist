@@ -51,5 +51,29 @@
 	<string>Мы используем контакты, чтобы вы могли выбрать получателя.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Это нужно для записи голосовых сообщений</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>voucherly</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>uz.voucherly.app</string>
+		</dict>
+	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Feather.ttf</string>
+		<string>MaterialIcons.ttf</string>
+		<string>Ionicons.ttf</string>
+		<string>Manrope-SemiBold.ttf</string>
+		<string>Manrope-Regular.ttf</string>
+		<string>Manrope-Medium.ttf</string>
+		<string>Manrope-Light.ttf</string>
+		<string>Manrope-ExtraLight.ttf</string>
+		<string>Manrope-ExtraBold.ttf</string>
+		<string>Manrope-Bold.ttf</string>
+	</array>
 </dict>
 </plist>

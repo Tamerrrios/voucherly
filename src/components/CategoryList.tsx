@@ -10,6 +10,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
+import { useLocalization } from '../context/LocalizationContext';
 
 interface Category {
   id: string;
@@ -20,9 +21,18 @@ interface Category {
 const CARD_WIDTH = 90;
 const CARD_HEIGHT = 130;
 
-const CategoryCard = ({ item }: { item: Category }) => {
+const CategoryCard = ({
+  item,
+  t,
+}: {
+  item: Category;
+  t: ReturnType<typeof useLocalization>['t'];
+}) => {
   const handlePress = () => {
-    Alert.alert('Скоро!', `Раздел "${item.title}" скоро будет доступен`);
+    Alert.alert(
+      t('common.comingSoon'),
+      `${t('common.sectionSoonPrefix')} "${item.title}" ${t('common.sectionSoonSuffix')}`,
+    );
   };
 
   return (
@@ -42,14 +52,16 @@ const CategoryList = ({
 }: {
   categories: Category[];
 }) => {
+  const { t } = useLocalization();
+
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.sectionTitle}>Категории</Text>
+      <Text style={styles.sectionTitle}>{t('home.categories')}</Text>
 
       <FlatList
         data={categories}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <CategoryCard item={item} />}
+        renderItem={({ item }) => <CategoryCard item={item} t={t} />}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.content}

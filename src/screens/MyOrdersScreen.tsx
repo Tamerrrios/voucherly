@@ -1,78 +1,265 @@
-import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useState, useContext, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  StyleSheet,
+  Image,
+  RefreshControl,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import moment from 'moment';
 import 'moment/locale/ru';
-import { AuthContext } from '../context/AuthContext';
-import GradientHeader from '../components/GradientHeader';
-import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import Modal from 'react-native-modal';
+import Clipboard from '@react-native-clipboard/clipboard';
 
+import { AuthContext } from '../context/AuthContext';
+import { Font } from '../theme/typography';
+import { useLocalization } from '../context/LocalizationContext';
+
+moment.locale('ru');
+
+type OrderDoc = {
+  id: string;
+  userID?: string;
+  parnertName?: string;
+  partnerName?: string;
+  voucher?: { price?: number; imageUrl?: string; title?: string };
+  voucherCode?: string;
+  createdAt?: any;
+  redeemed?: boolean;
+  status?: 'created' | 'paid' | 'delivered' | 'processing' | 'canceled' | 'expired' | 'used' | 'sent' | string;
+};
+
+type WalletTab = 'active' | 'history';
 
 const MyOrdersScreen = () => {
   const { user } = useContext(AuthContext);
-  const [orders, setOrders] = useState([]);
+  const { t, language } = useLocalization();
+
+  useEffect(() => {
+    moment.locale(language === 'ru' ? 'ru' : 'en');
+  }, [language]);
+  const [orders, setOrders] = useState<OrderDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [tab, setTab] = useState<WalletTab>('active');
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [selectedCode, setSelectedCode] = useState<string>('');
 
+  const fetchOrders = useCallback(async () => {
+    if (!user) return;
+    try {
+      setRefreshing(true);
+      const snap = await firestore()
+        .collection('orders')
+        .where('userID', '==', user.uid)
+        .orderBy('createdAt', 'desc')
+        .get();
 
-  
+      const fetched = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      setOrders(fetched as OrderDoc[]);
+    } catch (e) {
+      console.error('Ошибка загрузки заказов', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
+    setLoading(true);
 
-    const unsubscribe = firestore()
+    const unsub = firestore()
       .collection('orders')
       .where('userID', '==', user.uid)
       .orderBy('createdAt', 'desc')
       .onSnapshot(
-        snapshot => {
-          const fetchedOrders = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setOrders(fetchedOrders);
+        (snapshot) => {
+          const fetched = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+          setOrders(fetched as OrderDoc[]);
           setLoading(false);
         },
-        err => {
-          console.error('Ошибка загрузки заказов', err);
+        (err) => {
+          console.error('Ошибка onSnapshot', err);
           setLoading(false);
-        }
+        },
       );
 
-    return () => unsubscribe();
+    return () => unsub();
   }, [user]);
 
-  const renderOrder = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.row}>
-        {/* <Image
-          source={require('../../assets/images/store.png')}
-          style={styles.icon}
-        /> */}
-        <Text style={styles.partnerName}>
-          {item.parnertName || 'Партнёр не указан'}
-        </Text>
+  const onRefresh = () => fetchOrders();
+
+  const HISTORY_STATUSES = new Set(['delivered', 'canceled', 'expired', 'used', 'sent']);
+
+  const isHistoryOrder = (item: OrderDoc) => {
+    if (typeof item.redeemed === 'boolean') {
+      return item.redeemed;
+    }
+
+    const normalized = (item.status || '').toLowerCase();
+    return HISTORY_STATUSES.has(normalized);
+  };
+
+  const isActiveOrder = (item: OrderDoc) => {
+    return !isHistoryOrder(item);
+  };
+
+  const getHistoryStatusMeta = (status?: string) => {
+    switch ((status || '').toLowerCase()) {
+      case 'delivered':
+        return { label: t('wallet.used'), bg: '#EEF0F3', color: '#5B6470' };
+      case 'canceled':
+        return { label: t('wallet.expired'), bg: '#F2F2F2', color: '#6B7280' };
+      default:
+        return { label: t('wallet.sent'), bg: '#EEF0F3', color: '#5B6470' };
+    }
+  };
+
+  const filteredOrders = useMemo(
+    () => orders.filter((item) => (tab === 'active' ? isActiveOrder(item) : isHistoryOrder(item))),
+    [orders, tab],
+  );
+
+  const formatExpiry = (createdAt: any) => {
+    if (!createdAt?.toDate) return '—';
+    return moment(createdAt.toDate()).add(6, 'months').format('DD MMM YYYY');
+  };
+
+  const formatAmount = (price?: number) => {
+    if (!price) return '—';
+    const locale = language === 'uz' ? 'uz-UZ' : language === 'en' ? 'en-US' : 'ru-RU';
+    return `${Number(price).toLocaleString(locale)} ${t('wallet.currency')}`;
+  };
+
+  const openRedeemSheet = (code?: string) => {
+    setSelectedCode(code || '— — — — — —');
+    setSheetVisible(true);
+  };
+
+  const onCopyCode = () => {
+    if (!selectedCode) return;
+    Clipboard.setString(selectedCode);
+    Alert.alert(t('wallet.copiedTitle'), t('wallet.copiedMessage'));
+  };
+
+  const renderOrder = ({ item }: { item: OrderDoc }) => {
+    const partner = item.partnerName || item.parnertName || item.voucher?.title || 'Merchant';
+    const amount = formatAmount(item.voucher?.price);
+    const date = item.createdAt?.toDate ? moment(item.createdAt.toDate()).format('DD MMM YYYY') : '—';
+    const code = item.voucherCode || '— — — — — —';
+    const historyStatus = getHistoryStatusMeta(item.status);
+    const historyMode = tab === 'history';
+
+    return (
+      <Animated.View entering={FadeInUp.duration(320)}>
+        <TouchableOpacity activeOpacity={0.96} style={styles.card}>
+          <LinearGradient
+            colors={['rgba(229,57,53,0.10)', 'rgba(229,57,53,0.03)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.cardAccent}
+          />
+
+          <View style={styles.topRow}>
+            <View style={styles.logoWrap}>
+              {item.voucher?.imageUrl ? (
+                <Image source={{ uri: item.voucher.imageUrl }} style={styles.logoImage} />
+              ) : (
+                <LinearGradient
+                  colors={['#F0F2F5', '#E8EBF0']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.logoPlaceholder}
+                >
+                  <Ionicons name="image-outline" size={16} color="#8E96A3" />
+                </LinearGradient>
+              )}
+            </View>
+
+            <View style={styles.partnerCol}>
+              <Text style={styles.partnerName} numberOfLines={1}>
+                {partner}
+              </Text>
+              <Text style={styles.categoryText}>{t('wallet.digitalVoucher')}</Text>
+            </View>
+
+            {historyMode ? (
+              <View style={[styles.statusBadge, { backgroundColor: historyStatus.bg }]}>
+                <Text style={[styles.statusText, { color: historyStatus.color }]}>{historyStatus.label}</Text>
+              </View>
+            ) : (
+              <View style={styles.amountCol}>
+                <Text style={styles.amount}>{amount}</Text>
+                <Text style={styles.remainingLabel}>{t('wallet.remaining')}</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.metaRow}>
+            <View style={styles.metaCol}>
+              <Text style={styles.metaLabel}>{t('wallet.code')}</Text>
+              <Text style={styles.metaValue} numberOfLines={1}>
+                {code}
+              </Text>
+            </View>
+            <View style={[styles.metaCol, styles.metaColRight]}>
+              <Text style={styles.metaLabel}>{t('wallet.expires')}</Text>
+              <Text style={styles.metaValue}>{formatExpiry(item.createdAt)}</Text>
+            </View>
+          </View>
+
+          {historyMode ? (
+            <Text style={styles.historyDate}>{t('wallet.updated')} {date}</Text>
+          ) : (
+            <View style={styles.actionRow}>
+                <TouchableOpacity activeOpacity={0.9} style={styles.redeemBtn} onPress={() => openRedeemSheet(code)}>
+                  <Text style={styles.redeemText}>{t('wallet.redeem')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity activeOpacity={0.9} style={styles.shareBtn}>
+                  <Ionicons name="share-social-outline" size={16} color="#6B7280" />
+                </TouchableOpacity>
+            </View>
+          )}
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
+  const renderHeader = () => (
+    <View style={styles.headerWrap}>
+      <View style={styles.headerRow}>
+        <Text style={styles.headerTitle}>{t('wallet.title')}</Text>
+        <TouchableOpacity activeOpacity={0.85} style={styles.addButton}>
+          <Ionicons name="add" size={18} color="#5C5A57" />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Стоимость:</Text>
-        <Text style={styles.price}>
-          {item.voucher?.price
-            ? `${item.voucher.price.toLocaleString('ru-RU')} Сум`
-            : '-'}
-        </Text>
-      </View>
-
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Дата заказа:</Text>
-        <Text style={styles.date}>
-          {item.createdAt?.toDate
-            ? moment(item.createdAt.toDate()).format('DD MMM YYYY, HH:mm')
-            : '-'}
-        </Text>
-      </View>
-
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Статус:</Text>
-        <Text style={styles.status}>{item.status || 'Доставлен'}</Text>
+      <View style={styles.segmentWrap}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => setTab('active')}
+          style={[styles.segmentButton, tab === 'active' && styles.segmentButtonActive]}
+        >
+          <Text style={[styles.segmentLabel, tab === 'active' && styles.segmentLabelActive]}>{t('wallet.active')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => setTab('history')}
+          style={[styles.segmentButton, tab === 'history' && styles.segmentButtonActive]}
+        >
+          <Text style={[styles.segmentLabel, tab === 'history' && styles.segmentLabelActive]}>{t('wallet.history')}</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -80,235 +267,406 @@ const MyOrdersScreen = () => {
   if (loading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#6C63FF" />
-      </View>
-    );
-  }
-
-  if (orders.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        {/* <Image
-          source={require('../../assets/images/empty-box.png')}
-          style={{ width: 100, height: 100, marginBottom: 16 }}
-        /> */}
-        <Text style={styles.emptyText}>У вас пока нет заказов</Text>
+        <ActivityIndicator size="large" color="#D96E63" />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
-      <GradientHeader title="Мои заказы" showBackButton = {true} />
+    <View style={styles.screen}>
+      {renderHeader()}
+
       <FlatList
-        data={orders}
+        data={filteredOrders}
+        key={tab}
+        keyExtractor={(item) => item.id}
         renderItem={renderOrder}
-        keyExtractor={item => item.id}
         contentContainerStyle={styles.listContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#D96E63']} />}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="wallet-outline" size={26} color="#D96E63" />
+            </View>
+            <Text style={styles.emptyTitle}>{tab === 'active' ? t('wallet.noActive') : t('wallet.noHistory')}</Text>
+            <Text style={styles.emptyText}>
+              {tab === 'active'
+                ? t('wallet.noActiveDesc')
+                : t('wallet.noHistoryDesc')}
+            </Text>
+          </View>
+        }
+        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
       />
+
+      <Modal
+        isVisible={sheetVisible}
+        onBackdropPress={() => setSheetVisible(false)}
+        style={styles.sheetModal}
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        useNativeDriver
+      >
+        <View style={styles.sheetCard}>
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetTitle}>{t('wallet.voucherCode')}</Text>
+          <Text style={styles.sheetHint}>{t('wallet.voucherHint')}</Text>
+
+          <View style={styles.sheetCodeBox}>
+            <Text style={styles.sheetCode}>{selectedCode}</Text>
+          </View>
+
+          <TouchableOpacity activeOpacity={0.9} style={styles.sheetPrimaryBtn} onPress={onCopyCode}>
+            <Text style={styles.sheetPrimaryText}>{t('wallet.copyCode')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.sheetSecondaryBtn}
+            onPress={() => Alert.alert(t('wallet.qrSoonTitle'), t('wallet.qrSoonMessage'))}
+          >
+            <Text style={styles.sheetSecondaryText}>{t('wallet.showQr')}</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  listContainer: {
-    padding: 16,
-    backgroundColor: '#FAFAFA',
+  screen: {
+    flex: 1,
+    backgroundColor: '#F6F7F9',
   },
-  card: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
+  headerWrap: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    paddingTop: 80,
+    paddingBottom: 14,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
-    elevation: 3,
+    elevation: 2,
   },
-  row: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
   },
-  icon: {
-    width: 20,
-    height: 20,
-    marginRight: 8,
-    tintColor: '#6C63FF',
+  headerTitle: {
+    fontFamily: Font.bold,
+    fontSize: 28,
+    color: '#1E1E1E',
+    letterSpacing: -0.4,
+  },
+  addButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F4F4F5',
+    borderWidth: 1,
+    borderColor: '#ECECEE',
+  },
+  segmentWrap: {
+    marginTop: 14,
+    backgroundColor: '#EFF1F4',
+    borderRadius: 14,
+    padding: 4,
+    flexDirection: 'row',
+  },
+  segmentButton: {
+    flex: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+  },
+  segmentButtonActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  segmentLabel: {
+    fontFamily: Font.medium,
+    fontSize: 14,
+    color: '#7B8088',
+  },
+  segmentLabelActive: {
+    fontFamily: Font.semibold,
+    color: '#31343A',
+  },
+  listContainer: {
+    paddingHorizontal: 14,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 14,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  cardAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 82,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoWrap: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#F5F6F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  logoImage: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+  },
+  logoPlaceholder: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  partnerCol: {
+    flex: 1,
+    paddingRight: 10,
   },
   partnerName: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#333',
+    fontFamily: Font.semibold,
+    fontSize: 17,
+    color: '#1E2228',
   },
-  detailRow: {
+  categoryText: {
+    fontFamily: Font.medium,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    color: '#8C929D',
+    marginTop: 2,
+  },
+  amountCol: {
+    alignItems: 'flex-end',
+    minWidth: 112,
+  },
+  amount: {
+    fontFamily: Font.bold,
+    fontSize: 26,
+    color: '#1E2228',
+    letterSpacing: -0.7,
+  },
+  remainingLabel: {
+    marginTop: 1,
+    fontFamily: Font.regular,
+    fontSize: 9,
+    color: '#A2A8B2',
+    letterSpacing: 0.35,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  statusText: {
+    fontFamily: Font.semibold,
+    fontSize: 12,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F2F5',
+    marginVertical: 16,
+  },
+  metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    columnGap: 12,
   },
-  label: {
-    color: '#888',
+  metaCol: {
+    flex: 1,
+  },
+  metaColRight: {
+    alignItems: 'flex-end',
+  },
+  metaLabel: {
+    fontFamily: Font.medium,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    color: '#969CA6',
+  },
+  metaValue: {
+    marginTop: 5,
+    fontFamily: Font.semibold,
+    fontSize: 15,
+    color: '#303641',
+  },
+  historyDate: {
+    marginTop: 14,
+    fontFamily: Font.regular,
+    fontSize: 12,
+    color: '#8A909B',
+  },
+  actionRow: {
+    marginTop: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 10,
+  },
+  redeemBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 30,
+    backgroundColor: '#D45E52',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#D45E52',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  redeemText: {
+    fontFamily: Font.semibold,
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  shareBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F5F6F8',
+    borderWidth: 1,
+    borderColor: '#E7E9ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetModal: {
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
+  sheetCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 30,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 4,
+    backgroundColor: '#E7E9ED',
+    marginBottom: 14,
+  },
+  sheetTitle: {
+    fontFamily: Font.bold,
+    fontSize: 21,
+    color: '#1F2329',
+    textAlign: 'center',
+  },
+  sheetHint: {
+    marginTop: 8,
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#707782',
+    fontFamily: Font.regular,
     fontSize: 13,
+    lineHeight: 18,
   },
-  price: {
-    color: '#6C63FF',
+  sheetCodeBox: {
+    backgroundColor: '#F5F7FA',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  sheetCode: {
+    fontFamily: Font.bold,
+    fontSize: 24,
+    color: '#232832',
+    letterSpacing: 1,
+  },
+  sheetPrimaryBtn: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#D45E52',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  sheetPrimaryText: {
+    color: '#FFFFFF',
+    fontFamily: Font.semibold,
+    fontSize: 15,
+  },
+  sheetSecondaryBtn: {
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#F3F5F8',
+    borderWidth: 1,
+    borderColor: '#E6E9EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetSecondaryText: {
+    color: '#4A515D',
+    fontFamily: Font.medium,
     fontSize: 14,
-    fontWeight: '600',
-  },
-  date: {
-    fontSize: 13,
-    color: '#555',
-  },
-  status: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#00AA00',
   },
   loader: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F6F7F9',
   },
   emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    paddingTop: 60,
+    paddingHorizontal: 24,
+  },
+  emptyIcon: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#EEE6E3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontFamily: Font.bold,
+    fontSize: 18,
+    color: '#232832',
+    marginBottom: 4,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#666',
+    fontFamily: Font.regular,
+    fontSize: 14,
+    color: '#7C828D',
     textAlign: 'center',
   },
 });
 
 export default MyOrdersScreen;
-// import React, { useEffect, useState, useContext } from 'react';
-// import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-// import firestore from '@react-native-firebase/firestore';
-// import { AuthContext } from '../context/AuthContext';
-// import moment from 'moment';
-// import GradientHeader from '../components/GradientHeader'; // наш кастомный header
-
-
-// const MyOrdersScreen = ({ navigation }) => {
-//   const { user } = useContext(AuthContext);
-//   const [orders, setOrders] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const documentId = firestore.FieldPath.documentId;
-
-//   useEffect(() => {
-//     if (!user) return;
-
-//     const unsubscribe = firestore()
-//     .collection('orders')
-//     .where('userID', '==', user.uid)
-//     .orderBy('createdAt', 'desc')
-//       .onSnapshot(snapshot => {
-//         const fetchedOrders = snapshot.docs.map(doc => ({
-//           id: doc.id,
-//           ...doc.data(),
-//         }));
-//         setOrders(fetchedOrders);
-//         setLoading(false);
-//       }, err => {
-//         console.error('Ошибка загрузки заказов', err);
-//         setLoading(false);
-//       });
-
-//     return () => unsubscribe();
-//   }, [user]);
-
-//   const renderOrder = ({ item }) => (
-//     <TouchableOpacity
-//       style={styles.card}
-//       onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
-//     >
-//       <Text style={styles.partnerName}>{item.parnertName || 'Партнёр не указан'}</Text>
-//       <Text style={styles.price}>{item.voucher?.price ? `${item.voucher.price.toLocaleString('ru-RU')} Сум` : '-'}</Text>
-//       <Text style={styles.date}>{item.createdAt?.toDate ? moment(item.createdAt.toDate()).format('DD.MM.YYYY HH:mm') : '-'}</Text>
-//       <Text style={styles.status}>{item.status || 'Статус не указан'}</Text>
-//     </TouchableOpacity>
-//   );
-
-//   if (loading) {
-//     return (
-//       <View style={styles.loader}>
-//         <ActivityIndicator size="large" color="#6C63FF" />
-//       </View>
-//     );
-//   }
-
-//   if (orders.length === 0) {
-//     return (
-//       <View style={styles.emptyContainer}>
-//         <Text style={styles.emptyText}>У вас пока нет заказов</Text>
-//       </View>
-//     );
-//   }
-
-//   return (
-//     <View style={{ flex: 1 }}>
-//       <GradientHeader title="Мои заказы" />
-//     <FlatList
-//       data={orders}
-//       renderItem={renderOrder}
-//       keyExtractor={item => item.id}
-//       contentContainerStyle={styles.listContainer}
-//     />
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   listContainer: {
-//     padding: 16,
-//     backgroundColor: '#f9f9f9',
-//   },
-//   card: {
-//     backgroundColor: 'white',
-//     padding: 16,
-//     borderRadius: 12,
-//     marginBottom: 12,
-//     elevation: 3,
-//   },
-//   partnerName: {
-//     fontWeight: 'bold',
-//     fontSize: 16,
-//     marginBottom: 4,
-//     color: '#333',
-//   },
-//   price: {
-//     fontSize: 14,
-//     color: '#6C63FF',
-//     marginBottom: 4,
-//   },
-//   date: {
-//     fontSize: 12,
-//     color: '#666',
-//     marginBottom: 4,
-//   },
-//   status: {
-//     fontSize: 12,
-//     fontWeight: '600',
-//     color: '#00AA00',
-//   },
-//   loader: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//   },
-//   emptyContainer: {
-//     flex:1,
-//     justifyContent:'center',
-//     alignItems:'center',
-//     padding: 16,
-//   },
-//   emptyText: {
-//     fontSize: 16,
-//     color: '#666',
-//   },
-// });
-
-// export default MyOrdersScreen;

@@ -1,8 +1,9 @@
 // context/OrderContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 
 type Order = {
   voucher?: any;
+  voucherCode?: string;
   voucherId?: string;
   partnerId?: string;
   partnerName?: string;
@@ -24,14 +25,19 @@ const OrderContext = createContext<OrderContextType | undefined>(undefined);
 export const OrderProvider = ({ children }: { children: ReactNode }) => {
   const [order, setOrderState] = useState<Partial<Order>>({});
 
-  const setOrder = (data: Partial<Order>) => {
+  const setOrder = useCallback((data: Partial<Order>) => {
     setOrderState((prev) => ({ ...prev, ...data }));
-  };
+  }, []);
 
-  const resetOrder = () => setOrderState({});
+  const resetOrder = useCallback(() => setOrderState({}), []);
+
+  const value = useMemo(
+    () => ({ order, setOrder, resetOrder }),
+    [order, setOrder, resetOrder],
+  );
 
   return (
-    <OrderContext.Provider value={{ order, setOrder, resetOrder }}>
+    <OrderContext.Provider value={value}>
       {children}
     </OrderContext.Provider>
   );

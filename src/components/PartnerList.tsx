@@ -6,41 +6,71 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import * as Animatable from 'react-native-animatable';
+import LinearGradient from 'react-native-linear-gradient';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
-const screenWidth = Dimensions.get('window').width;
-const cardWidth = screenWidth - 32;
+import { Navigation } from '../navigation/Navigation';
+import { Font } from '../theme/typography';
+import { useLocalization } from '../context/LocalizationContext';
+
+const CARD_RADIUS = 22;
+const CARD_HEIGHT = 200;
 
 const PartnerList = ({ partners }: { partners: any[] }) => {
-  const navigation = useNavigation();
+  const { language } = useLocalization();
+  const copy = {
+    ru: { digital: 'Цифровой ваучер', popular: 'Популярное' },
+    uz: { digital: 'Raqamli vaucher', popular: 'Ommabop' },
+    en: { digital: 'Digital Voucher', popular: 'Popular' },
+  }[language];
 
   const renderItem = ({ item, index }: { item: any; index: number }) => (
     <Animatable.View
       animation="fadeInUp"
-      delay={index * 100}
+      delay={index * 80}
       useNativeDriver
     >
       <TouchableOpacity
         style={styles.cardWrapper}
+        activeOpacity={0.93}
         onPress={() =>
-          navigation.navigate('Supplier', { partnerId: item.partnerId })
+          Navigation.navigate(Navigation.Routes.Supplier, {
+            partnerId: item.partnerId,
+          })
         }
       >
         <ImageBackground
           source={{ uri: item.imageUrl }}
           style={styles.card}
-          imageStyle={{ borderRadius: 16, width: '100%' }}
+          imageStyle={styles.cardImage}
           resizeMode="cover"
         >
-          <View style={styles.overlay}>
-            <Text style={styles.name}>{item.name}</Text>
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Перейти</Text>
-            </TouchableOpacity>
+          {/* ── Pill sits directly on the image, no gradient behind it ── */}
+          <View style={styles.pillWrap}>
+            <View style={styles.pill}>
+              <Text style={styles.pillText}>{copy.digital}</Text>
+            </View>
           </View>
+
+          {/* ── Subtle bottom-only scrim ── */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.65)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.scrim}
+          >
+            <View style={styles.bottomRow}>
+              <View style={styles.textCol}>
+                <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+              </View>
+
+              <View style={styles.arrowBtn}>
+                <Ionicons name="arrow-forward" size={17} color="#E53935" />
+              </View>
+            </View>
+          </LinearGradient>
         </ImageBackground>
       </TouchableOpacity>
     </Animatable.View>
@@ -48,13 +78,14 @@ const PartnerList = ({ partners }: { partners: any[] }) => {
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.sectionTitle}>Популярное</Text>
+      <Text style={styles.sectionTitle}>{copy.popular}</Text>
       <FlatList
         data={partners}
-        keyExtractor={item => item.id}
+        keyExtractor={(item, index) => item.id ?? String(item.partnerId ?? index)}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+        ItemSeparatorComponent={() => <View style={{ height: 14 }} />}
+        scrollEnabled={false}
       />
     </View>
   );
@@ -62,67 +93,110 @@ const PartnerList = ({ partners }: { partners: any[] }) => {
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginTop: -16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-    color: '#1C1C1E',
+    fontFamily: Font.bold,
+    fontSize: 22,
+    lineHeight: 28,
+    marginBottom: 14,
+    color: '#1B1E26',
   },
   list: {
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
+
+  /* ── Card shell ── */
   cardWrapper: {
-    borderRadius: 16,
-    overflow: 'hidden',
+    borderRadius: CARD_RADIUS,
+    backgroundColor: '#E0DEDA',
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 14,
     elevation: 4,
   },
   card: {
-    width: cardWidth,
-    height: 150,
-    borderRadius: 16,
-    justifyContent: 'flex-end',
-    alignSelf: 'center',
+    height: CARD_HEIGHT,
+    borderRadius: CARD_RADIUS,
     overflow: 'hidden',
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 4,
   },
-  overlay: {
+  cardImage: {
+    borderRadius: CARD_RADIUS,
+  },
+
+  /* ── Pill — floats on clear image near top-left ── */
+  pillWrap: {
+    position: 'absolute',
+    top: 14,
+    left: 16,
+    zIndex: 2,
+  },
+  pill: {
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  pillText: {
+    color: '#fff',
+    fontFamily: Font.semibold,
+    fontSize: 11,
+    letterSpacing: 0.3,
+  },
+
+  /* ── Bottom scrim — covers only lower ~40% ── */
+  scrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: CARD_HEIGHT * 0.45,
+    borderBottomLeftRadius: CARD_RADIUS,
+    borderBottomRightRadius: CARD_RADIUS,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 0,
+    paddingBottom: 0,
+  },
+
+  /* ── Bottom action row ── */
+  bottomRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    justifyContent: 'space-between',
+  },
+  textCol: {
+    flex: 1,
+    marginRight: 14,
   },
   name: {
     color: '#fff',
+    fontFamily: Font.bold,
     fontSize: 18,
-    fontWeight: '700',
-    maxWidth: '75%',
+    lineHeight: 24,
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    left: 10,
+    bottom: 10,
   },
-  button: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  buttonText: {
-    color: '#333',
-    fontSize: 14,
-    fontWeight: '600',
+
+  /* ── White circle CTA with brand-color arrow ── */
+  arrowBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 3,
+    right: 10,
+    bottom: 10
   },
 });
 
