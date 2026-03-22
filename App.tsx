@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
@@ -13,9 +13,12 @@ import { Navigator } from './src/navigation';
 import { navigationRef } from './src/navigation';
 import { PendingGiftProvider } from './src/context/PendingGiftContext';
 import { LocalizationProvider } from './src/context/LocalizationContext';
+import SplashScreen from './src/screens/SplashScreen';
 
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <LocalizationProvider>
@@ -29,6 +32,7 @@ export default function App() {
           </PendingGiftProvider>
         </AuthProvider>
       </LocalizationProvider>
+      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
     </GestureHandlerRootView>
   );
 }

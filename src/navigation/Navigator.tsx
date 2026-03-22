@@ -12,7 +12,6 @@ import { Navigation, navigationRef } from "./Navigation";
 import { Routes, RootStackParamList, TabParamList } from "./types";
 import CustomTabBar from "./CustomTabBar";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import VoucherCodeModal from '../components/VoucherCodeModal';
 import { useLocalization } from '../context/LocalizationContext';
 
 
@@ -28,6 +27,7 @@ import {
   SuccessScreen,
   RegisterScreen,
   LoginScreen,
+  OtpVerificationScreen,
   AuthRedirectScreen,
   MyOrdersScreen,
   OrderDetailsScreen,
@@ -65,7 +65,6 @@ enableScreens();
 
 const BottomTabs: React.FC = () => {
   const { user } = useContext(AuthContext);
-  const [showUnavailableModal, setShowUnavailableModal] = useState(false);
   const { t } = useLocalization();
 
   return (
@@ -117,12 +116,6 @@ const BottomTabs: React.FC = () => {
           name={Routes.CategoryScreen}
           component={CategoryScreen}
           options={{ tabBarLabel: t('navigation.vouchers') }}
-          listeners={{
-            tabPress: (e) => {
-              e.preventDefault();          // блокируем переход
-              setShowUnavailableModal(true); // показываем модалку
-            },
-          }}
         />
 
         <Tab.Screen
@@ -153,19 +146,17 @@ const BottomTabs: React.FC = () => {
           })}
         />
       </Tab.Navigator>
-
-      <VoucherCodeModal
-        visible={showUnavailableModal}
-        onClose={() => setShowUnavailableModal(false)}
-        title={t('navigation.unavailableTitle')}
-        description={t('navigation.unavailableDescription')}
-        showCodeBox={false}
-        showCopyButton={false}
-        closeButtonLabel={t('navigation.understood')}
-      />
     </>
   );
 };
+
+/** Runs inside NavigationContainer so hooks can access navigation context */
+const PushHandler = () => {
+  const { usePushNotifications } = require('../hooks/usePushNotifications');
+  usePushNotifications();
+  return null;
+};
+
 export const Navigator = () => {
   const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
@@ -187,6 +178,7 @@ export const Navigator = () => {
       ref={navigationRef}
       onStateChange={Navigation.onStateChange}
     >
+      <PushHandler />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {showOnboarding && (
           <Stack.Screen name={Routes.Onboarding} component={OnboardingScreen} />
@@ -210,6 +202,7 @@ export const Navigator = () => {
         {!user && (
           <>
             <Stack.Screen name={Routes.Login} component={LoginScreen} />
+            <Stack.Screen name={Routes.OtpVerification} component={OtpVerificationScreen} />
             <Stack.Screen name={Routes.Register} component={RegisterScreen} />
           </>
         )}

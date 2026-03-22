@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    development  → Debug builds (Simulator / direct device install)
+    production   → Release / App Store / TestFlight builds
+    Xcode switches this automatically when you add Push Notifications
+    capability via Signing & Capabilities tab.
+  -->
+  <key>aps-environment</key>
+  <string>development</string>
+</dict>
+</plist>

@@ -27,14 +27,17 @@ moment.locale('ru');
 
 type OrderDoc = {
   id: string;
+  userId?: string;
   userID?: string;
+  partnerId?: string;
   parnertName?: string;
   partnerName?: string;
+  partnerImageUrl?: string | null;
   voucher?: { price?: number; imageUrl?: string; title?: string };
   voucherCode?: string;
   createdAt?: any;
   redeemed?: boolean;
-  status?: 'created' | 'paid' | 'delivered' | 'processing' | 'canceled' | 'expired' | 'used' | 'sent' | string;
+  status?: 'paid' | 'redeemed' | 'delivered' | 'processing' | 'canceled' | 'cancelled' | 'expired' | 'used' | 'sent' | string;
 };
 
 type WalletTab = 'active' | 'history';
@@ -53,25 +56,59 @@ const MyOrdersScreen = () => {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [selectedCode, setSelectedCode] = useState<string>('');
 
+  const enrichOrdersWithPartnerLogos = useCallback(async (items: OrderDoc[]) => {
+    const missingPartnerIds = Array.from(
+      new Set(
+        items
+          .filter((item) => !item.partnerImageUrl && item.partnerId)
+          .map((item) => item.partnerId as string),
+      ),
+    );
+
+    if (missingPartnerIds.length === 0) {
+      return items;
+    }
+
+    const partnerEntries = await Promise.all(
+      missingPartnerIds.map(async (partnerId) => {
+        try {
+          const partnerSnap = await firestore().collection('partners').doc(partnerId).get();
+          const partnerImageUrl = (partnerSnap.data() as { imageUrl?: string | null } | undefined)?.imageUrl ?? null;
+          return [partnerId, partnerImageUrl] as const;
+        } catch {
+          return [partnerId, null] as const;
+        }
+      }),
+    );
+
+    const partnerImageMap = Object.fromEntries(partnerEntries);
+
+    return items.map((item) => ({
+      ...item,
+      partnerImageUrl: item.partnerImageUrl || partnerImageMap[item.partnerId || ''] || null,
+    }));
+  }, []);
+
   const fetchOrders = useCallback(async () => {
     if (!user) return;
     try {
       setRefreshing(true);
       const snap = await firestore()
         .collection('orders')
-        .where('userID', '==', user.uid)
+        .where('userId', '==', user.uid)
         .orderBy('createdAt', 'desc')
         .get();
 
-      const fetched = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
-      setOrders(fetched as OrderDoc[]);
+      const fetched = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as OrderDoc[];
+      const enriched = await enrichOrdersWithPartnerLogos(fetched);
+      setOrders(enriched);
     } catch (e) {
       console.error('Ошибка загрузки заказов', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user]);
+  }, [enrichOrdersWithPartnerLogos, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -79,12 +116,13 @@ const MyOrdersScreen = () => {
 
     const unsub = firestore()
       .collection('orders')
-      .where('userID', '==', user.uid)
+      .where('userId', '==', user.uid)
       .orderBy('createdAt', 'desc')
       .onSnapshot(
-        (snapshot) => {
-          const fetched = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
-          setOrders(fetched as OrderDoc[]);
+        async (snapshot) => {
+          const fetched = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as OrderDoc[];
+          const enriched = await enrichOrdersWithPartnerLogos(fetched);
+          setOrders(enriched);
           setLoading(false);
         },
         (err) => {
@@ -94,7 +132,7 @@ const MyOrdersScreen = () => {
       );
 
     return () => unsub();
-  }, [user]);
+  }, [enrichOrdersWithPartnerLogos, user]);
 
   const onRefresh = () => fetchOrders();
 
@@ -153,6 +191,7 @@ const MyOrdersScreen = () => {
 
   const renderOrder = ({ item }: { item: OrderDoc }) => {
     const partner = item.partnerName || item.parnertName || item.voucher?.title || 'Merchant';
+    const partnerLogo = item.partnerImageUrl || item.voucher?.imageUrl || null;
     const amount = formatAmount(item.voucher?.price);
     const date = item.createdAt?.toDate ? moment(item.createdAt.toDate()).format('DD MMM YYYY') : '—';
     const code = item.voucherCode || '— — — — — —';
@@ -171,8 +210,8 @@ const MyOrdersScreen = () => {
 
           <View style={styles.topRow}>
             <View style={styles.logoWrap}>
-              {item.voucher?.imageUrl ? (
-                <Image source={{ uri: item.voucher.imageUrl }} style={styles.logoImage} />
+              {partnerLogo ? (
+                <Image source={{ uri: partnerLogo }} style={styles.logoImage} />
               ) : (
                 <LinearGradient
                   colors={['#F0F2F5', '#E8EBF0']}

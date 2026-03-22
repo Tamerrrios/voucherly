@@ -27,14 +27,18 @@ export const initFirebaseAdmin = (): admin.app.App => {
   }
 
   const serviceAccount = getServiceAccount();
+  const projectId = process.env.FIREBASE_PROJECT_ID || serviceAccount?.project_id;
 
   if (serviceAccount) {
     return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      projectId,
     });
   }
 
-  return admin.initializeApp();
+  return admin.initializeApp({
+    projectId,
+  });
 };
 
 export { admin };

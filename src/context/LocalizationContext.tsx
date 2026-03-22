@@ -9,8 +9,6 @@ type LocalizationContextValue = {
 };
 
 const STORAGE_KEY = 'voucherly.language';
-const warnedKeys = new Set<string>();
-
 const LocalizationContext = createContext<LocalizationContextValue | undefined>(undefined);
 
 const resolveValue = (language: AppLanguage, key: TranslationKey): string => {
@@ -33,26 +31,14 @@ const resolveValue = (language: AppLanguage, key: TranslationKey): string => {
 
   const ruFallback = readPath(translations.ru);
   if (ruFallback !== undefined) {
-    if (__DEV__ && !warnedKeys.has(`ru:${key}`)) {
-      warnedKeys.add(`ru:${key}`);
-      console.warn(`[i18n] Missing key "${key}" for language "${language}", fallback to ru.`);
-    }
     return ruFallback;
   }
 
   const enFallback = readPath(translations.en);
   if (enFallback !== undefined) {
-    if (__DEV__ && !warnedKeys.has(`en:${key}`)) {
-      warnedKeys.add(`en:${key}`);
-      console.warn(`[i18n] Missing key "${key}" for language "${language}", fallback to en.`);
-    }
     return enFallback;
   }
 
-  if (__DEV__ && !warnedKeys.has(`key:${key}`)) {
-    warnedKeys.add(`key:${key}`);
-    console.warn(`[i18n] Missing translation key in all locales: "${key}"`);
-  }
   return key;
 };
 

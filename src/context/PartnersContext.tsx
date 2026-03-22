@@ -1,6 +1,6 @@
 // contexts/PartnersContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getPartners, getBanners, getCategories } from '../api/homeApi'; 
+import { getPartners, getBanners, getCategories } from '../api/homeApi';
 
 interface PartnersContextType {
   partners: any[];
@@ -30,7 +30,7 @@ export const PartnersProvider: React.FC<PartnersProviderProps> = ({ children }) 
     try {
       setLoading(true);
       setError(null);
-      
+
       const [bannersData, partnersData, categoriesData] = await Promise.all([
         getBanners(),
         getPartners(),
@@ -40,7 +40,7 @@ export const PartnersProvider: React.FC<PartnersProviderProps> = ({ children }) 
       setBanners(bannersData);
       setPartners(partnersData);
       setCategories(categoriesData ?? []);
-      
+
       const popular = partnersData.filter(p => p.isPopular === true);
       setPopularPartners(popular);
     } catch (e) {

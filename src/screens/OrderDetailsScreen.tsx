@@ -47,6 +47,9 @@ const OrderDetailsScreen = ({ route }) => {
     );
   }
 
+  const senderImageUrl = order.imageUrl || order.attachedImage || order.mediaImageUrl || null;
+  const statusLabel = order.status === 'created' ? 'paid' : order.status || copy.unknown;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{copy.title}</Text>
@@ -75,11 +78,11 @@ const OrderDetailsScreen = ({ route }) => {
         </View>
       )}
 
-      {(order.imageUrl || order.audioUrl) && (
+      {(senderImageUrl || order.audioUrl) && (
         <View style={styles.mediaContainer}>
-          {order.imageUrl && (
+          {senderImageUrl && (
             <Image
-              source={{ uri: order.imageUrl }}
+              source={{ uri: senderImageUrl }}
               style={styles.image}
               resizeMode="contain"
             />
@@ -97,7 +100,7 @@ const OrderDetailsScreen = ({ route }) => {
 
       <View style={styles.row}>
         <Text style={styles.label}>{copy.status}</Text>
-        <Text style={styles.value}>{order.status || copy.unknown}</Text>
+        <Text style={styles.value}>{statusLabel}</Text>
       </View>
     </ScrollView>
   );

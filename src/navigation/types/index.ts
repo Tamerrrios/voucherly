@@ -8,6 +8,7 @@ import { NotificationsScreen } from "../../screens";
 export enum Routes {
   /** ---------- AUTH ---------- */
   Login = "Login",
+  OtpVerification = "OtpVerification",
   Register = "Register",
   AuthRedirect = "AuthRedirect",
 

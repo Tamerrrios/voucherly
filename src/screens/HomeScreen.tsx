@@ -13,7 +13,6 @@ import PartnerList from '../components/PartnerList';
 import LottieView from 'lottie-react-native';
 import { usePartners } from '../context/PartnersContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import VoucherCodeModal from '../components/VoucherCodeModal';
 import { Font } from '../theme/typography';
 import { useLocalization } from '../context/LocalizationContext';
 
@@ -27,41 +26,27 @@ const HomeScreen = () => {
   const [searching, setSearching] = useState(false);
   const [filteredPartners, setFilteredPartners] = useState<any[]>([]);
   const insets = useSafeAreaInsets();
-  const [demoVisible, setDemoVisible] = useState(false);
 
   const copy = {
     ru: {
       title: 'Найдите идеальный подарок 🎁',
       subtitle: 'Отправляйте цифровые ваучеры мгновенно',
       nothing: 'Ничего не найдено по запросу',
-      demoTitle: 'Демо режим',
-      demoDescription: 'Приложение сейчас работает в демо-режиме, оплата пока не активна.',
-      close: 'Закрыть',
     },
     uz: {
       title: 'Mukammal sovg‘ani toping 🎁',
       subtitle: 'Raqamli vaucherlarni darhol yuboring',
       nothing: 'So‘rov bo‘yicha hech narsa topilmadi',
-      demoTitle: 'Demo rejim',
-      demoDescription: 'Ilova hozir demo rejimda ishlayapti, to‘lov hozircha faol emas.',
-      close: 'Yopish',
     },
     en: {
       title: 'Find the perfect gift 🎁',
       subtitle: 'Send digital vouchers instantly',
       nothing: 'Nothing found for',
-      demoTitle: 'Demo mode',
-      demoDescription: 'The app is currently running in demo mode, payment is not active yet.',
-      close: 'Close',
     },
   }[language];
 
   useEffect(() => {
     setFilteredPartners(partners);
-    const timer = setTimeout(() => {
-      setDemoVisible(true);
-    }, 400);
-    return () => clearTimeout(timer);
   }, [partners]);
 
   useEffect(() => {
@@ -153,17 +138,6 @@ const HomeScreen = () => {
           styles.scrollContent,
           { paddingBottom: insets.bottom + TABBAR_HEIGHT + 16 },
         ]}
-      />
-
-      <VoucherCodeModal
-        visible={demoVisible}
-        code={null}
-        title={copy.demoTitle}
-        description={copy.demoDescription}
-        showCodeBox={false}
-        showCopyButton={false}
-        onClose={() => setDemoVisible(false)}
-        closeButtonLabel={copy.close}
       />
     </View>
   );

@@ -7,6 +7,12 @@ import { Routes } from ".";
 export type RootStackParamList = {
   /** ---------- AUTH ---------- */
   [Routes.Login]: { returnTo?: keyof RootStackParamList } | undefined;
+  [Routes.OtpVerification]: {
+    phoneMasked: string;
+    phone: string;
+    requestId: string;
+    returnTo?: keyof RootStackParamList;
+  };
   [Routes.Register]: undefined;
   [Routes.AuthRedirect]: undefined;
 

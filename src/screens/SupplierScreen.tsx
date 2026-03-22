@@ -70,6 +70,7 @@ const SupplierScreen = ({ route }: Props) => {
             voucher: v,
             partnerId: partnerId,
             partnerName: data?.name,
+            partnerImageUrl: data?.imageUrl ?? null,
           });
         }
       } catch (e) {
@@ -96,6 +97,7 @@ const SupplierScreen = ({ route }: Props) => {
       voucher: voucher,
       partnerId: voucher.partnerId ?? partnerId,
       partnerName: partner?.name,
+      partnerImageUrl: partner?.imageUrl ?? null,
     });
   };
 

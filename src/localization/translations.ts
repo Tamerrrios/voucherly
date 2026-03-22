@@ -3,7 +3,7 @@ export type AppLanguage = 'uz' | 'ru' | 'en';
 export const translations = {
   ru: {
     common: {
-      guest: 'Гость',
+      guest: 'Анонимный пользователь',
       close: 'Закрыть',
       done: 'Готово',
       error: 'Ошибка',
@@ -29,6 +29,17 @@ export const translations = {
     },
     profile: {
       title: 'Профиль',
+      nameFallback: 'Анонимный пользователь',
+      editName: 'Изменить имя',
+      editNameTitle: 'Как к вам обращаться?',
+      editNameSubtitle: 'Это имя будет использоваться в вашем профиле и в персональных сценариях приложения.',
+      namePlaceholder: 'Введите имя',
+      saveName: 'Сохранить',
+      nameRequired: 'Введите имя не короче 2 символов',
+      nameSaved: 'Имя обновлено',
+      logoutConfirmTitle: 'Выйти из аккаунта?',
+      logoutConfirmSubtitle: 'Вы сможете войти снова по номеру телефона в любое время.',
+      logoutConfirmButton: 'Да, выйти',
       language: 'Язык',
       privacy: 'Политика конфиденциальности',
       logout: 'Выйти из приложения',
@@ -45,7 +56,6 @@ export const translations = {
       email: 'Email',
       password: 'Пароль',
       signIn: 'ВОЙТИ',
-      telegram: 'Продолжить через Telegram',
       noAccount: 'Нет аккаунта?',
       register: 'Зарегистрироваться',
       forgot: 'Забыли пароль?',
@@ -61,11 +71,6 @@ export const translations = {
       invalidEmail: 'Некорректный email',
       notFound: 'Пользователь с таким email не найден',
       sendFailed: 'Не удалось отправить письмо',
-      telegramNotConfiguredTitle: 'Telegram не настроен',
-      telegramNotConfiguredMessage: 'Укажите TELEGRAM_AUTH_BASE_URL в src/config/telegramAuth.ts (HTTPS адрес backend).',
-      telegramLoginError: 'Ошибка входа через Telegram',
-      telegramMissingToken: 'Custom token отсутствует',
-      telegramInvalidResponse: 'Некорректный ответ от страницы Telegram',
     },
     wallet: {
       title: 'Мой кошелёк',
@@ -93,15 +98,12 @@ export const translations = {
       showQr: 'Показать QR',
       qrSoonTitle: 'Скоро',
       qrSoonMessage: 'QR будет доступен в следующем обновлении',
-      signingIn: 'Входим...',
-      telegramLogin: 'Вход через Telegram',
       networkError: 'Ошибка сети',
-      openTelegramPageError: 'Не удалось открыть Telegram страницу',
     },
   },
   uz: {
     common: {
-      guest: 'Mehmon',
+      guest: 'Anonim foydalanuvchi',
       close: 'Yopish',
       done: 'Tayyor',
       error: 'Xatolik',
@@ -127,6 +129,17 @@ export const translations = {
     },
     profile: {
       title: 'Profil',
+      nameFallback: 'Anonim foydalanuvchi',
+      editName: 'Ismni tahrirlash',
+      editNameTitle: 'Sizga qanday murojaat qilaylik?',
+      editNameSubtitle: 'Bu ism profilingizda va ilovadagi shaxsiy ssenariylarda ishlatiladi.',
+      namePlaceholder: 'Ism kiriting',
+      saveName: 'Saqlash',
+      nameRequired: 'Kamida 2 ta belgidan iborat ism kiriting',
+      nameSaved: 'Ism yangilandi',
+      logoutConfirmTitle: 'Akkauntdan chiqilsinmi?',
+      logoutConfirmSubtitle: 'Istalgan vaqtda telefon raqami orqali qayta kirishingiz mumkin.',
+      logoutConfirmButton: 'Ha, chiqish',
       language: 'Til',
       privacy: 'Maxfiylik siyosati',
       logout: 'Ilovadan chiqish',
@@ -143,7 +156,6 @@ export const translations = {
       email: 'Email',
       password: 'Parol',
       signIn: 'KIRISH',
-      telegram: 'Telegram orqali davom etish',
       noAccount: 'Akkaunt yo‘qmi?',
       register: 'Ro‘yxatdan o‘tish',
       forgot: 'Parolni unutdingizmi?',
@@ -159,11 +171,6 @@ export const translations = {
       invalidEmail: 'Noto‘g‘ri email',
       notFound: 'Bunday email bilan foydalanuvchi topilmadi',
       sendFailed: 'Xatni yuborib bo‘lmadi',
-      telegramNotConfiguredTitle: 'Telegram sozlanmagan',
-      telegramNotConfiguredMessage: 'src/config/telegramAuth.ts faylida TELEGRAM_AUTH_BASE_URL ni (HTTPS backend manzili) kiriting.',
-      telegramLoginError: 'Telegram orqali kirishda xatolik',
-      telegramMissingToken: 'Custom token topilmadi',
-      telegramInvalidResponse: 'Telegram sahifasidan noto‘g‘ri javob keldi',
     },
     wallet: {
       title: 'Mening hamyonim',
@@ -191,15 +198,12 @@ export const translations = {
       showQr: 'QR ko‘rsatish',
       qrSoonTitle: 'Tez kunda',
       qrSoonMessage: 'QR keyingi yangilanishda qo‘shiladi',
-      signingIn: 'Kirilmoqda...',
-      telegramLogin: 'Telegram orqali kirish',
       networkError: 'Tarmoq xatosi',
-      openTelegramPageError: 'Telegram sahifasini ochib bo‘lmadi',
     },
   },
   en: {
     common: {
-      guest: 'Guest',
+      guest: 'Anonymous user',
       close: 'Close',
       done: 'Done',
       error: 'Error',
@@ -225,6 +229,17 @@ export const translations = {
     },
     profile: {
       title: 'Profile',
+      nameFallback: 'Anonymous user',
+      editName: 'Edit name',
+      editNameTitle: 'How should we address you?',
+      editNameSubtitle: 'This name will be used in your profile and in personalized app flows.',
+      namePlaceholder: 'Enter name',
+      saveName: 'Save',
+      nameRequired: 'Enter a name with at least 2 characters',
+      nameSaved: 'Name updated',
+      logoutConfirmTitle: 'Log out of your account?',
+      logoutConfirmSubtitle: 'You can sign in again anytime with your phone number.',
+      logoutConfirmButton: 'Yes, log out',
       language: 'Language',
       privacy: 'Privacy Policy',
       logout: 'Log out',
@@ -241,7 +256,6 @@ export const translations = {
       email: 'Email',
       password: 'Password',
       signIn: 'SIGN IN',
-      telegram: 'Continue with Telegram',
       noAccount: 'No account?',
       register: 'Register',
       forgot: 'Forgot password?',
@@ -257,11 +271,6 @@ export const translations = {
       invalidEmail: 'Invalid email',
       notFound: 'User with this email was not found',
       sendFailed: 'Could not send email',
-      telegramNotConfiguredTitle: 'Telegram auth is not configured',
-      telegramNotConfiguredMessage: 'Set TELEGRAM_AUTH_BASE_URL in src/config/telegramAuth.ts to your HTTPS backend domain.',
-      telegramLoginError: 'Telegram login error',
-      telegramMissingToken: 'Custom token is missing',
-      telegramInvalidResponse: 'Invalid response from Telegram page',
     },
     wallet: {
       title: 'My Wallet',
@@ -289,10 +298,7 @@ export const translations = {
       showQr: 'Show QR',
       qrSoonTitle: 'Coming soon',
       qrSoonMessage: 'QR will be available in the next update',
-      signingIn: 'Signing in...',
-      telegramLogin: 'Telegram Login',
       networkError: 'Network error',
-      openTelegramPageError: 'Unable to open Telegram login page',
     },
   },
 } as const;
@@ -317,6 +323,17 @@ export type TranslationKey =
   | 'navigation.unavailableDescription'
   | 'navigation.understood'
   | 'profile.title'
+  | 'profile.nameFallback'
+  | 'profile.editName'
+  | 'profile.editNameTitle'
+  | 'profile.editNameSubtitle'
+  | 'profile.namePlaceholder'
+  | 'profile.saveName'
+  | 'profile.nameRequired'
+  | 'profile.nameSaved'
+  | 'profile.logoutConfirmTitle'
+  | 'profile.logoutConfirmSubtitle'
+  | 'profile.logoutConfirmButton'
   | 'profile.language'
   | 'profile.privacy'
   | 'profile.logout'
@@ -331,7 +348,6 @@ export type TranslationKey =
   | 'login.email'
   | 'login.password'
   | 'login.signIn'
-  | 'login.telegram'
   | 'login.noAccount'
   | 'login.register'
   | 'login.forgot'
@@ -347,11 +363,6 @@ export type TranslationKey =
   | 'login.invalidEmail'
   | 'login.notFound'
   | 'login.sendFailed'
-  | 'login.telegramNotConfiguredTitle'
-  | 'login.telegramNotConfiguredMessage'
-  | 'login.telegramLoginError'
-  | 'login.telegramMissingToken'
-  | 'login.telegramInvalidResponse'
   | 'wallet.title'
   | 'wallet.active'
   | 'wallet.history'
@@ -377,7 +388,4 @@ export type TranslationKey =
   | 'wallet.showQr'
   | 'wallet.qrSoonTitle'
   | 'wallet.qrSoonMessage'
-  | 'wallet.signingIn'
-  | 'wallet.telegramLogin'
-  | 'wallet.networkError'
-  | 'wallet.openTelegramPageError';
+  | 'wallet.networkError';

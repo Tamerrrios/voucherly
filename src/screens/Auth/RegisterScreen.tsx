@@ -14,12 +14,15 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import GradientHeader from '../../components/GradientHeader';
-import { auth, firestore } from '../../firebase/firebase';
+import { firebaseAuth, db } from '../../firebase/firebase';
 import { Font } from '../../theme/typography';
-import SocialAuthButtons from '../../components/SocialAuthButtons';
-import { bumpUsers } from '../../utils/updateStats';
-// ДОБАВЛЕНО: импорты для соц-входа
-import authRN from '@react-native-firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  signInWithCredential,
+  GoogleAuthProvider,
+  AppleAuthProvider,
+} from '@react-native-firebase/auth';
+import { doc, setDoc } from '@react-native-firebase/firestore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import appleAuth, { AppleRequestOperation, AppleRequestScope } from '@invertase/react-native-apple-authentication';
 import { useLocalization } from '../../context/LocalizationContext';
@@ -188,18 +191,16 @@ const RegisterScreen = () => {
     data: { email?: string | null; name?: string | null }
   ) => {
     try {
-      await firestore()
-        .collection('users')
-        .doc(uid)
-        .set(
-          {
-            email: data.email ?? null,
-            name: data.name ?? null,
-            updatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
+      await setDoc(
+        doc(db, 'users', uid),
+        {
+          email: data.email ?? null,
+          name: data.name ?? null,
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
     } catch (e) {
       console.log('FIRESTORE_UPSERT_ERROR', e);
     }
@@ -239,10 +240,10 @@ const RegisterScreen = () => {
     try {
       setSubmitting(true);
 
-      const userCredential = await auth().createUserWithEmailAndPassword(_email, password);
+      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, _email, password);
       await userCredential.user.updateProfile({ displayName: _name });
 
-      await firestore().collection('users').doc(userCredential.user.uid).set({
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
         email: _email,
         name: _name,
         createdAt: new Date().toISOString(),
@@ -285,8 +286,8 @@ const RegisterScreen = () => {
       const { idToken } = await GoogleSignin.signIn();
       if (!idToken) throw new Error(copy.googleTokenError);
 
-      const credential = authRN.GoogleAuthProvider.credential(idToken);
-      const res = await auth().signInWithCredential(credential);
+      const credential = GoogleAuthProvider.credential(idToken);
+      const res = await signInWithCredential(firebaseAuth, credential);
 
       await upsertUserProfile(res.user.uid, {
         email: res.user.email,
@@ -316,8 +317,8 @@ const RegisterScreen = () => {
       const { identityToken, authorizationCode } = response;
       if (!identityToken) throw new Error(copy.appleTokenError);
 
-      const credential = authRN.AppleAuthProvider.credential(identityToken, authorizationCode);
-      const res = await auth().signInWithCredential(credential);
+      const credential = AppleAuthProvider.credential(identityToken, authorizationCode);
+      const res = await signInWithCredential(firebaseAuth, credential);
 
       const displayName =
         res.user.displayName ||

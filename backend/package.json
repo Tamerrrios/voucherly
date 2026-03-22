@@ -1,5 +1,5 @@
 {
-  "name": "voucherly-telegram-auth-backend",
+  "name": "voucherly-backend",
   "version": "1.0.0",
   "private": true,
   "main": "dist/server.js",

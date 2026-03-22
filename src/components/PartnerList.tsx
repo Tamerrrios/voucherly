@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   pill: {
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: '#E53935',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 5,

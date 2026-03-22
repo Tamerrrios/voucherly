@@ -11,7 +11,7 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		163922088EE34A5B86D57B06 /* Manrope-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1F94A7F624434BB3A48F3D85 /* Manrope-SemiBold.ttf */; };
 		203F4B5A4F9A4FECA8E16252 /* Manrope-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CE6A75D1FECB477490DC7964 /* Manrope-Bold.ttf */; };
-		38846F952DD5C26900F5C7B3 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 38846F942DD5C26900F5C7B3 /* GoogleService-Info.plist */; };
+		3026E2092F6AC9E900B4593A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3026E2082F6AC9E900B4593A /* GoogleService-Info.plist */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		885D55595177416184BCA128 /* Manrope-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 933304FD915B44148B7E6763 /* Manrope-Medium.ttf */; };
@@ -28,7 +28,8 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = voucherly/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = voucherly/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1F94A7F624434BB3A48F3D85 /* Manrope-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-SemiBold.ttf"; path = "../assets/fonts/Manrope-SemiBold.ttf"; sourceTree = "<group>"; };
-		38846F942DD5C26900F5C7B3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		301B9E312F683A2200929906 /* voucherlyDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = voucherlyDebug.entitlements; path = voucherly/voucherlyDebug.entitlements; sourceTree = "<group>"; };
+		3026E2082F6AC9E900B4593A /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		444513E8171345E98CF5FBBC /* Manrope-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-ExtraBold.ttf"; path = "../assets/fonts/Manrope-ExtraBold.ttf"; sourceTree = "<group>"; };
 		6583D4C35DC385B923B69832 /* Pods-voucherly.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-voucherly.release.xcconfig"; path = "Target Support Files/Pods-voucherly/Pods-voucherly.release.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = voucherly/AppDelegate.swift; sourceTree = "<group>"; };
@@ -58,10 +59,11 @@
 		13B07FAE1A68108700A75B9A /* voucherly */ = {
 			isa = PBXGroup;
 			children = (
+				301B9E312F683A2200929906 /* voucherlyDebug.entitlements */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
-				38846F942DD5C26900F5C7B3 /* GoogleService-Info.plist */,
+				3026E2082F6AC9E900B4593A /* GoogleService-Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 			);
@@ -193,11 +195,11 @@
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
-				38846F952DD5C26900F5C7B3 /* GoogleService-Info.plist in Resources */,
 				1243A4C3400DC2782319F020 /* PrivacyInfo.xcprivacy in Resources */,
 				203F4B5A4F9A4FECA8E16252 /* Manrope-Bold.ttf in Resources */,
 				D0AC9B10731047948B3F6A48 /* Manrope-ExtraBold.ttf in Resources */,
 				A271DDECD15541A486F39BC3 /* Manrope-ExtraLight.ttf in Resources */,
+				3026E2092F6AC9E900B4593A /* GoogleService-Info.plist in Resources */,
 				9CE33F837C3345DEB69B0F5C /* Manrope-Light.ttf in Resources */,
 				885D55595177416184BCA128 /* Manrope-Medium.ttf in Resources */,
 				EBC7169176AB4570A597DE53 /* Manrope-Regular.ttf in Resources */,
@@ -313,12 +315,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = voucherly/voucherlyDebug.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2H8KXLW6GH;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = voucherly/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Voucherly;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.shopping";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -330,11 +335,16 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = uz.voucherly.app;
 				PRODUCT_NAME = voucherly;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
@@ -350,6 +360,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2H8KXLW6GH;
 				INFOPLIST_FILE = voucherly/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Voucherly;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.shopping";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -361,10 +373,15 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = uz.voucherly.app;
 				PRODUCT_NAME = voucherly;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;

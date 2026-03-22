@@ -7,6 +7,8 @@ type Order = {
   voucherId?: string;
   partnerId?: string;
   partnerName?: string;
+  partnerImageUrl?: string;
+  senderName?: string;
   totalPrice?: number;
   imageUrl?: string;    
   audioUrl?: string;     

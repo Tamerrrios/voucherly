@@ -1,0 +1,10 @@
+{
+  "name": "voucherly-web",
+  "private": true,
+  "scripts": {
+    "build:hosting": "bash ./scripts/build-hosting.sh",
+    "deploy:hosting": "bash ./scripts/build-hosting.sh && firebase deploy --only hosting",
+    "emulators": "firebase emulators:start --only hosting,functions",
+    "deploy:web-auth": "bash ./scripts/build-hosting.sh && firebase deploy --only hosting,functions"
+  }
+}

@@ -15,6 +15,8 @@ type GiftDoc = {
   partnerName?: string;
   voucher?: { price?: number; imageUrl?: string; title?: string };
   imageUrl?: string;        // user attached image
+  attachedImage?: string;
+  mediaImageUrl?: string;
   voucherCode?: string;     // "VC-ABC123"
   expiresAt?: FirebaseFirestoreTypes.Timestamp | null;
   status?: string;          // optional
@@ -80,7 +82,7 @@ const GiftClaimScreen: React.FC = () => {
           price: gift.voucher?.price ?? null,
           imageUrl: gift.voucher?.imageUrl ?? null,
           message: gift.comment ?? null,
-          mediaImageUrl: gift.imageUrl ?? null,
+          mediaImageUrl: senderImageUrl,
           claimedAt: firestore.FieldValue.serverTimestamp(),
           status: 'active',
           expiresAt: gift.expiresAt ?? null,
@@ -125,6 +127,8 @@ const GiftClaimScreen: React.FC = () => {
     ? `${gift.voucher.price.toLocaleString(language === 'uz' ? 'uz-UZ' : language === 'en' ? 'en-US' : 'ru-RU')} ${copy.currency}`
     : '';
 
+  const senderImageUrl = gift.imageUrl || gift.attachedImage || gift.mediaImageUrl || null;
+
   return (
     <View style={{ flex: 1, backgroundColor: '#111' }}>
       {/* Анимация подарка */}
@@ -161,11 +165,11 @@ const GiftClaimScreen: React.FC = () => {
           </View>
         )}
 
-        {!!gift.imageUrl && (
+        {!!senderImageUrl && (
           <View style={{ marginTop: 12 }}>
             <Text style={styles.subhead}>{copy.senderImage}</Text>
             <ImageBackground
-              source={{ uri: gift.imageUrl }}
+              source={{ uri: senderImageUrl }}
               style={styles.attach}
               imageStyle={{ borderRadius: 12 }}
             />

@@ -20,13 +20,14 @@ end
 
 target 'voucherly' do
   config = use_native_modules!
-  
+
   # required for firebase
   use_frameworks! :linkage => :static
   $RNFirebaseAsStaticFramework = true
 
   use_react_native!(
     :path => config[:reactNativePath],
+    :new_arch_enabled => false,
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
@@ -39,5 +40,13 @@ target 'voucherly' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Xcode can fail on glog/RN pods with non-modular include errors when
+    # pods are built as frameworks. Keep this scoped to Pods project settings.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |build_config|
+        build_config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      end
+    end
   end
 end

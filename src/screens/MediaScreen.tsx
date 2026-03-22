@@ -31,6 +31,8 @@ const COPY = {
     screenSubtitle: 'Создайте особенный момент для близкого человека',
     addPhoto: 'Добавить фото',
     addPhotoSub: 'Сделайте ваш подарок незабываемым',
+    senderNameLabel: 'ИМЯ ОТПРАВИТЕЛЯ',
+    senderNamePlaceholder: 'Например: Темур',
     messageLabel: 'ЛИЧНОЕ СООБЩЕНИЕ',
     messagePlaceholder: 'Напишите тёплое пожелание...',
     change: 'Изменить',
@@ -44,6 +46,8 @@ const COPY = {
     screenSubtitle: 'Yaqiningiz uchun alohida lahza yarating',
     addPhoto: 'Rasm qo‘shish',
     addPhotoSub: 'Sovg‘angizni unutilmas qiling',
+    senderNameLabel: 'YUBORUVCHI ISMI',
+    senderNamePlaceholder: 'Masalan: Temur',
     messageLabel: 'SHAXSIY XABAR',
     messagePlaceholder: 'Samimiy tilak yozing...',
     change: 'O‘zgartirish',
@@ -57,6 +61,8 @@ const COPY = {
     screenSubtitle: 'Create a special moment for your loved one',
     addPhoto: 'Add photo',
     addPhotoSub: 'Make your gift unforgettable',
+    senderNameLabel: 'SENDER NAME',
+    senderNamePlaceholder: 'For example: Temur',
     messageLabel: 'PERSONAL MESSAGE',
     messagePlaceholder: 'Write a warm wish...',
     change: 'Change',
@@ -74,6 +80,7 @@ const MediaScreen = () => {
   const [audioUri, setAudioUri] = useState<string | null>(null);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [senderName, setSenderName] = useState('');
   const [comment, setComment] = useState('');
   const { setOrder } = useOrder();
   const [recordSecs, setRecordSecs] = useState(0);
@@ -149,6 +156,7 @@ const MediaScreen = () => {
     setOrder({
       imageUrl: imageUri ?? undefined,
       audioUrl: audioUri ?? undefined,
+      senderName: senderName.trim() || 'Анонимный отправитель',
       comment,
     });
   };
@@ -183,6 +191,20 @@ const MediaScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.mainCard}>
+          <View style={styles.senderCard}>
+            <Text style={styles.messageLabel}>{t.senderNameLabel}</Text>
+            <View style={styles.messageInputShell}>
+              <TextInput
+                style={styles.senderInput}
+                placeholder={t.senderNamePlaceholder}
+                placeholderTextColor="#A6A8AE"
+                value={senderName}
+                onChangeText={setSenderName}
+                maxLength={60}
+              />
+            </View>
+          </View>
+
           <TouchableOpacity
             activeOpacity={0.92}
             style={[styles.photoHero, imageUri ? styles.photoHeroActive : null]}
@@ -350,23 +372,23 @@ const styles = StyleSheet.create({
   },
   photoHero: {
     borderRadius: 28,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F4F6FA',
     minHeight: 300,
     paddingHorizontal: 18,
     paddingVertical: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F0F1F4',
+    borderColor: '#E2E7EF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.09,
-    shadowRadius: 24,
-    elevation: 7,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
   photoHeroActive: {
-    borderColor: '#E8B1AA',
-    shadowOpacity: 0.13,
+    borderColor: '#DDA09A',
+    shadowOpacity: 0.08,
   },
   photoPreview: {
     width: '100%',
@@ -400,6 +422,27 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 10,
   },
+  senderCard: {
+    borderRadius: 22,
+    backgroundColor: '#F4F6FA',
+    borderWidth: 1,
+    borderColor: '#E2E7EF',
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 16,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  senderInput: {
+    backgroundColor: 'transparent',
+    fontSize: 16,
+    minHeight: 46,
+    color: '#22242A',
+  },
   photoActionBtn: {
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -414,7 +457,9 @@ const styles = StyleSheet.create({
   messageCard: {
     marginTop: 30,
     borderRadius: 22,
-    backgroundColor: '#F8F9FB',
+    backgroundColor: '#F4F6FA',
+    borderWidth: 1,
+    borderColor: '#E2E7EF',
     paddingHorizontal: 18,
     paddingTop: 16,
     paddingBottom: 16,
@@ -425,24 +470,31 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   messageLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.5,
-    color: '#8A8D95',
+    letterSpacing: 1.2,
+    color: '#646B78',
     marginBottom: 13,
   },
   messageInputShell: {
     borderRadius: 16,
-    backgroundColor: '#FAFBFC',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D9DFE8',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   input: {
     backgroundColor: 'transparent',
-    fontSize: 15,
+    fontSize: 16,
     minHeight: 104,
-    color: '#2D2E35',
-    lineHeight: 21,
+    color: '#22242A',
+    lineHeight: 23,
     textAlignVertical: 'top',
   },
   previewBtn: {

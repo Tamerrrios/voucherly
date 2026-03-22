@@ -1,5 +1,6 @@
 // ---------- AUTH ----------
 export { default as LoginScreen } from "./Auth/LoginScreen";
+export { default as OtpVerificationScreen } from "./Auth/OtpVerificationScreen";
 export { default as RegisterScreen } from "./Auth/RegisterScreen";
 export { default as AuthRedirectScreen } from "./AuthRedirectScreen";
 export { default as OnboardingScreen } from "./OnboardingScreen";

@@ -9,11 +9,11 @@ import {
   Platform,
   AppState,
   Image,
+  Linking,
 } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
-import firestore from '@react-native-firebase/firestore';
-import { auth } from '../firebase/firebase';
+import { firebaseAuth } from '../firebase/firebase';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackButton from '../components/BackButton';
@@ -21,10 +21,9 @@ import BackButton from '../components/BackButton';
 import { useOrder } from '../context/OrderContext';
 import { Navigation } from '../navigation/Navigation';
 import { Routes } from '../navigation/types';
-import { bumpVouchers } from '../utils/updateStats';
 import { uploadImageToFirebaseAlt } from '../api/homeApi';
-import { LogBox } from 'react-native';
 import { useLocalization } from '../context/LocalizationContext';
+import { createCheckoutSession, getOrderPaymentStatus } from '../services/paymentApi';
 
 
 const FEE_RATE = 0.0;
@@ -46,21 +45,21 @@ const COPY = {
     fee: 'Комиссия',
     total: 'Итого',
     agreeText: 'Я понимаю, что получателя укажу после оплаты — отправив персональную ссылку.',
-    payAndGetLink: 'Pay and Get Link',
-    verifyEmailBtn: 'Подтвердите email',
-    emailTitle: 'Подтверждение email',
-    emailNeedForOrder: 'Подтвердите почту, чтобы оформить заказ.',
-    emailNeedToContinue: 'Подтвердите почту, чтобы продолжить.',
-    resend: 'Отправить ещё раз',
-    done: 'Готово',
-    emailSentAgain: 'Письмо отправлено повторно.',
+    payAndGetLink: 'Перейти к оплате',
+    paymentPendingTitle: 'Ожидаем оплату',
+    paymentPendingMessage: 'После оплаты вернитесь в приложение. Мы проверим статус автоматически.',
+    paymentFailed: 'Оплата не завершена. Попробуйте снова.',
     error: 'Ошибка',
-    emailSendError: 'Не удалось отправить письмо.',
     ok: 'Ок',
     orderDataMissing: 'Данные заказа не найдены.',
     confirmationRequired: 'Требуется подтверждение',
     checkRequired: 'Поставьте галочку.',
-    orderFailed: 'Не удалось оформить заказ. Попробуйте ещё раз.',
+    orderFailed: 'Не удалось создать платеж. Попробуйте ещё раз.',
+    uploadPhotoTitle: 'Ошибка загрузки фото',
+    uploadPhotoMessage: 'Не удалось загрузить фото. Попробуйте снова или продолжите без фото.',
+    retryUpload: 'Повторить',
+    continueWithoutPhoto: 'Продолжить без фото',
+    cancel: 'Отмена',
   },
   uz: {
     step: '2/2-qadam',
@@ -78,21 +77,21 @@ const COPY = {
     fee: 'Komissiya',
     total: 'Jami',
     agreeText: 'Qabul qiluvchini to‘lovdan keyin shaxsiy havolani yuborish orqali ko‘rsatishimni tushunaman.',
-    payAndGetLink: 'Pay and Get Link',
-    verifyEmailBtn: 'Emailni tasdiqlang',
-    emailTitle: 'Email tasdiqlash',
-    emailNeedForOrder: 'Buyurtma berish uchun emailingizni tasdiqlang.',
-    emailNeedToContinue: 'Davom etish uchun emailingizni tasdiqlang.',
-    resend: 'Qayta yuborish',
-    done: 'Tayyor',
-    emailSentAgain: 'Xat qayta yuborildi.',
+    payAndGetLink: 'To‘lovga o‘tish',
+    paymentPendingTitle: 'To‘lov kutilmoqda',
+    paymentPendingMessage: 'To‘lovdan so‘ng ilovaga qayting. Statusni avtomatik tekshiramiz.',
+    paymentFailed: 'To‘lov yakunlanmadi. Qayta urinib ko‘ring.',
     error: 'Xatolik',
-    emailSendError: 'Xatni yuborib bo‘lmadi.',
     ok: 'OK',
     orderDataMissing: 'Buyurtma ma’lumotlari topilmadi.',
     confirmationRequired: 'Tasdiqlash talab qilinadi',
     checkRequired: 'Belgilash katagiga belgi qo‘ying.',
-    orderFailed: 'Buyurtmani rasmiylashtirib bo‘lmadi. Qaytadan urinib ko‘ring.',
+    orderFailed: 'To‘lovni yaratib bo‘lmadi. Qaytadan urinib ko‘ring.',
+    uploadPhotoTitle: 'Rasm yuklash xatosi',
+    uploadPhotoMessage: 'Rasmni yuklab bo‘lmadi. Qayta urinib ko‘ring yoki rasmsiz davom eting.',
+    retryUpload: 'Qayta urinish',
+    continueWithoutPhoto: 'Rasmsiz davom etish',
+    cancel: 'Bekor qilish',
   },
   en: {
     step: 'Step 2 of 2',
@@ -110,21 +109,21 @@ const COPY = {
     fee: 'Fee',
     total: 'Total',
     agreeText: 'I understand that I will specify the recipient after payment by sending a personal link.',
-    payAndGetLink: 'Pay and Get Link',
-    verifyEmailBtn: 'Verify email',
-    emailTitle: 'Email verification',
-    emailNeedForOrder: 'Verify your email to place an order.',
-    emailNeedToContinue: 'Verify your email to continue.',
-    resend: 'Resend',
-    done: 'Done',
-    emailSentAgain: 'Verification email sent again.',
+    payAndGetLink: 'Proceed to payment',
+    paymentPendingTitle: 'Waiting for payment',
+    paymentPendingMessage: 'Return to the app after payment. We will re-check the status automatically.',
+    paymentFailed: 'Payment was not completed. Please try again.',
     error: 'Error',
-    emailSendError: 'Could not send email.',
     ok: 'OK',
     orderDataMissing: 'Order data not found.',
     confirmationRequired: 'Confirmation required',
     checkRequired: 'Please check the box.',
-    orderFailed: 'Could not place order. Please try again.',
+    orderFailed: 'Could not create payment. Please try again.',
+    uploadPhotoTitle: 'Photo upload failed',
+    uploadPhotoMessage: 'Could not upload photo. Retry or continue without photo.',
+    retryUpload: 'Retry',
+    continueWithoutPhoto: 'Continue without photo',
+    cancel: 'Cancel',
   },
 } as const;
 
@@ -140,96 +139,70 @@ const CheckoutScreen = () => {
   const subtotal = voucher?.price ?? 0;
   const fee = Math.round(subtotal * FEE_RATE);
   const total = subtotal + fee;
-  const [verified, setVerified] = React.useState<boolean>(!!auth().currentUser?.emailVerified); // ★
+  const [submitting, setSubmitting] = React.useState(false);
+  const [pendingOrderId, setPendingOrderId] = React.useState<string | null>(null);
 
 
-  const generateUniqueVoucherCode = async (): Promise<string> => {
+  const generateUniqueVoucherCode = (): string => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const make = () => `VC-${Array.from({ length: 6 })
+    const ts = Date.now().toString(36).toUpperCase().slice(-4);
+    const rand = Array.from({ length: 4 })
       .map(() => chars[Math.floor(Math.random() * chars.length)])
-      .join('')}`;
-
-    let code = '';
-    let exists = true;
-    while (exists) {
-      code = make();
-      const snap = await firestore()
-        .collection('orders')
-        .where('voucherCode', '==', code)
-        .get();
-      exists = !snap.empty;
-    }
-    return code;
+      .join('');
+    return `VC-${ts}${rand}`;
   };
 
   useFocusEffect(
     React.useCallback(() => {
-      let alive = true;
-
       const check = async () => {
-        const user = auth().currentUser;
+        const user = firebaseAuth.currentUser;
         if (!user) {
           Navigation.navigate(Routes.Login, { returnTo: Routes.Checkout });
-          return;
-        }
-        try {
-          await user.reload();
-          if (!alive) return;
-          setVerified(user.emailVerified); // ★ обновляем локальный флаг
-
-          if (!user.emailVerified) {
-            Alert.alert(
-              t.emailTitle,
-              t.emailNeedForOrder,
-              [
-                {
-                  text: t.resend,
-                  onPress: async () => {
-                    try {
-                      await user.sendEmailVerification();
-                      Alert.alert(t.done, t.emailSentAgain);
-                    } catch {
-                      Alert.alert(t.error, t.emailSendError);
-                    }
-                  },
-                },
-                { text: t.ok, style: 'cancel' },
-              ],
-              { cancelable: false },
-            );
-          }
-        } catch (e) {
-          console.warn('user.reload error', e);
         }
       };
 
       check();
-      return () => { alive = false; };
+      return undefined;
     }, []),
   );
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', async (state) => {
-      if (state === 'active') {
-        const user = auth().currentUser;
-        if (user) {
-          await user.reload();
-          setVerified(user.emailVerified);
+      if (state === 'active' && pendingOrderId) {
+        try {
+          const status = await getOrderPaymentStatus(pendingOrderId);
+          if (status.status === 'paid') {
+            setPendingOrderId(null);
+            Navigation.navigate(Routes.Success, { orderId: pendingOrderId });
+          } else if (status.status === 'payment_failed' || status.status === 'cancelled') {
+            setPendingOrderId(null);
+            Alert.alert(t.error, t.paymentFailed);
+          }
+        } catch (error) {
+          console.log('payment status check failed', error);
         }
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [pendingOrderId, t.error, t.paymentFailed]);
 
-  
+  const askUploadFallbackAction = () =>
+    new Promise<'retry' | 'without' | 'cancel'>((resolve) => {
+      Alert.alert(
+        t.uploadPhotoTitle,
+        t.uploadPhotoMessage,
+        [
+          { text: t.retryUpload, onPress: () => resolve('retry') },
+          { text: t.continueWithoutPhoto, onPress: () => resolve('without') },
+          { text: t.cancel, style: 'cancel', onPress: () => resolve('cancel') },
+        ],
+        { cancelable: false },
+      );
+    });
+
 const handleConfirm = async () => {
   console.log('ORDER ON CHECKOUT:', order);
   console.log('Checkout imageUrl:', imageUrl);
-
-  if (!verified) {
-    Alert.alert(t.emailTitle, t.emailNeedToContinue);
-    return;
-  }
 
   if (!order || !voucher) {
     Alert.alert(t.error, t.orderDataMissing);
@@ -241,7 +214,8 @@ const handleConfirm = async () => {
   }
 
   try {
-    const user = auth().currentUser;
+    setSubmitting(true);
+    const user = firebaseAuth.currentUser;
     if (!user) {
       Navigation.navigate(Routes.Login, { returnTo: Routes.Checkout });
       return;
@@ -254,26 +228,39 @@ const handleConfirm = async () => {
     const voucherCode = await generateUniqueVoucherCode();
 
     // ---- 1. Готовим ссылку на картинку ----
-    let attachedImage: string | null = null;
+    let attachedImageUrl: string | null = null;
 
     if (imageUrl) {
-      console.log('DEBUG imageUrl raw:', imageUrl);
-
       if (/^https?:\/\//.test(imageUrl)) {
-        // вдруг уже URL
-        attachedImage = imageUrl;
+        attachedImageUrl = imageUrl;
+        console.log({ localUri: imageUrl, attachedImageUrl });
       } else {
-        try {
-          attachedImage = await uploadImageToFirebaseAlt(
-            imageUrl,
-            `orders/${userID}/${voucherCode}`, // 👈 теперь реально используется
-          );
-          console.log('ATTACHED_IMAGE_URL', attachedImage);
-        } catch (err) {
-          console.warn('IMAGE_UPLOAD_ERROR', err);
-          // временно можно показать Alert, потом убрать
-          Alert.alert('UPLOAD_ERROR', String(err));
-          attachedImage = null;
+        let uploadComplete = false;
+
+        while (!uploadComplete) {
+          try {
+            attachedImageUrl = await uploadImageToFirebaseAlt(
+              imageUrl,
+              `orders/${userID}/${voucherCode}`,
+            );
+            console.log({ localUri: imageUrl, attachedImageUrl });
+            uploadComplete = true;
+          } catch (err) {
+            console.error('IMAGE_UPLOAD_ERROR', err);
+
+            const action = await askUploadFallbackAction();
+            if (action === 'retry') {
+              continue;
+            }
+            if (action === 'without') {
+              attachedImageUrl = null;
+              console.log({ localUri: imageUrl, attachedImageUrl });
+              uploadComplete = true;
+              break;
+            }
+
+            return;
+          }
         }
       }
     }
@@ -299,43 +286,39 @@ const handleConfirm = async () => {
     const payload = {
       ...cleanOrder,
       voucher: voucherSnap ?? cleanOrder.voucher,
+      senderName: ((order?.senderName as string | undefined)?.trim()) || 'Анонимный отправитель',
 
-      attachedImage,                 // 👈 тут уже https-URL
+      // Keep both keys for backward compatibility across screens.
+      imageUrl: attachedImageUrl,
+      attachedImage: attachedImageUrl,
+      mediaImageUrl: attachedImageUrl,
       comment: comment?.trim() || null,
 
+      userId: userID,
       userID,
       userEmail,
       userName,
+
+      partnerImageUrl: ((order?.partnerImageUrl as string | undefined) ?? null),
 
       amount: subtotal,
       fee,
       total,
       currency: 'UZS',
+      platform: Platform.OS,
 
       voucherCode,
-
-      status: 'created',
-      shared: false,
-      sharedAt: null,
-
-      redeemed: false,
-      redeemedAt: null,
-      redeemedBy: null,
-
-      payProvider: null,
-      payTransactionId: null,
-
-      createdAt: firestore.FieldValue.serverTimestamp(),
-      updatedAt: firestore.FieldValue.serverTimestamp(),
     } as const;
 
-    console.log('FINAL_ORDER_PAYLOAD', payload);
-
-    const docRef = await firestore().collection('orders').add(payload);
-    Navigation.navigate(Routes.Success, { orderId: docRef.id });
+    const session = await createCheckoutSession(payload);
+    setPendingOrderId(session.orderId);
+    Alert.alert(t.paymentPendingTitle, t.paymentPendingMessage);
+    await Linking.openURL(session.checkoutUrl);
   } catch (e) {
     console.error('checkout error', e);
     Alert.alert(t.error, t.orderFailed);
+  } finally {
+    setSubmitting(false);
   }
 };
 
@@ -356,7 +339,7 @@ const handleConfirm = async () => {
   //   }
 
   //   try {
-  //     const user = auth().currentUser;
+  //     const user = firebaseAuth.currentUser;
   //     if (!user) {
   //       Navigation.navigate(Routes.Login, { returnTo: Routes.Checkout });
   //       return;
@@ -400,7 +383,7 @@ const handleConfirm = async () => {
   //       voucherCode,
 
   //       // ключевые статусы/метаданные
-  //       status: 'created',                      // created → paid → refunded/failed → redeemed
+  //       status: 'paid',                         // paid → refunded/failed → redeemed
   //       shared: false,
   //       sharedAt: null,
 
@@ -424,7 +407,7 @@ const handleConfirm = async () => {
   //   }
   // };
 
-  const payDisabled = !agree || !verified;
+  const payDisabled = !agree || submitting;
 
   return (
     <View style={styles.wrap}>
@@ -534,7 +517,7 @@ const handleConfirm = async () => {
           activeOpacity={0.9}
         >
           <Text style={styles.confirmText}>
-            {verified ? t.payAndGetLink : t.verifyEmailBtn}
+            {t.payAndGetLink}
           </Text>
         </TouchableOpacity>
         {/* <View style={styles.footer}>
