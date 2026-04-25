@@ -51,28 +51,77 @@ const generateVoucherCode = () => {
   return `VC-${ts}${rand}`;
 };
 
-const findUserUidByPhone = async (phone?: string | null) => {
+// Silent-create the gift recipient's account so the order can be attached
+// from the moment of purchase, instead of waiting for them to OTP-verify.
+// Reuses existing accounts when present (Firestore lookup, then Firebase Auth
+// lookup, then create-user). Marks the Firestore doc with silentCreated=true
+// and phoneVerified=false so a later OTP login can promote it via
+// ensurePhoneAuthUser without conflict. Returns null on any failure — the
+// order still completes and the recipient gets linked later via
+// attachOrdersToReceiver on first sign-in.
+const getOrSilentCreateReceiverByPhone = async (phone?: string | null) => {
   if (!phone) {
     return null;
   }
 
-  const snapshot = await admin
-    .firestore()
-    .collection('users')
-    .where('phone', '==', phone)
-    .limit(1)
-    .get();
+  const db = admin.firestore();
+  const usersRef = db.collection('users');
 
-  if (!snapshot.empty) {
-    return snapshot.docs[0].id;
+  const existingSnapshot = await usersRef.where('phone', '==', phone).limit(1).get();
+  if (!existingSnapshot.empty) {
+    return existingSnapshot.docs[0].id;
   }
 
+  let authUser: admin.auth.UserRecord | null = null;
   try {
-    const authUser = await admin.auth().getUserByPhoneNumber(phone);
-    return authUser.uid;
-  } catch {
+    authUser = await admin.auth().getUserByPhoneNumber(phone);
+  } catch (error) {
+    const code = (error as { code?: string })?.code;
+    if (code !== 'auth/user-not-found') {
+      console.error('[SILENT_CREATE_LOOKUP_FAILED]', { phone, code });
+      return null;
+    }
+  }
+
+  if (!authUser) {
+    try {
+      authUser = await admin.auth().createUser({ phoneNumber: phone });
+    } catch (error) {
+      const code = (error as { code?: string })?.code;
+      if (code === 'auth/phone-number-already-exists') {
+        try {
+          authUser = await admin.auth().getUserByPhoneNumber(phone);
+        } catch (lookupError) {
+          console.error('[SILENT_CREATE_RACE_LOOKUP_FAILED]', { phone, code: (lookupError as { code?: string })?.code });
+          return null;
+        }
+      } else {
+        console.error('[SILENT_CREATE_FAILED]', { phone, code });
+        return null;
+      }
+    }
+  }
+
+  if (!authUser) {
     return null;
   }
+
+  const uid = authUser.uid;
+  const nowIso = new Date().toISOString();
+
+  await usersRef.doc(uid).set(
+    {
+      phone,
+      phoneVerified: false,
+      silentCreated: true,
+      authProvider: 'phone_silent_create',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    },
+    { merge: true },
+  );
+
+  return uid;
 };
 
 const isReusableCheckoutOrder = (data: Record<string, any>) => {
@@ -287,27 +336,6 @@ const getBearerToken = (authorizationHeader?: string | null) => {
   return header.slice(7).trim() || null;
 };
 
-const getPaymentEnvironmentAllowlist = () =>
-  String(process.env.PAYMENT_ENV_OVERRIDE_ALLOWLIST || '')
-    .split(',')
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-
-const isPaymentEnvironmentAllowedForActor = (params: {
-  uid?: string | null;
-  email?: string | null;
-}) => {
-  const allowlist = getPaymentEnvironmentAllowlist();
-  if (!allowlist.length) {
-    return false;
-  }
-
-  const uid = String(params.uid || '').trim().toLowerCase();
-  const email = String(params.email || '').trim().toLowerCase();
-
-  return (uid && allowlist.includes(uid)) || (email && allowlist.includes(email));
-};
-
 const resolveRequestedPaymentEnvironment = (value: unknown): PaymentEnvironment | null => {
   if (typeof value !== 'string' || !value.trim()) {
     return null;
@@ -316,37 +344,15 @@ const resolveRequestedPaymentEnvironment = (value: unknown): PaymentEnvironment 
   return normalizePaymentEnvironment(value);
 };
 
-const getPaymentEnvironmentOverrideActor = async (authorizationHeader?: string | null) => {
-  const idToken = getBearerToken(authorizationHeader);
-  if (!idToken) {
-    return null;
-  }
-
-  try {
-    const decoded = await admin.auth().verifyIdToken(idToken);
-    return {
-      uid: decoded.uid,
-      email: decoded.email || null,
-    };
-  } catch {
-    return null;
-  }
-};
+const isPaymentEnvOverrideEnabled = () =>
+  String(process.env.PAYMENT_ENV_OVERRIDE_ENABLED || '').trim().toLowerCase() === 'true';
 
 const resolveEffectivePaymentEnvironment = async (params: {
   requestedEnvironment?: unknown;
   authorizationHeader?: string | null;
 }) => {
   const requestedEnvironment = resolveRequestedPaymentEnvironment(params.requestedEnvironment);
-  if (!requestedEnvironment) {
-    return {
-      environment: getMulticardEnvironmentConfig().environment,
-      overrideApplied: false,
-    };
-  }
-
-  const actor = await getPaymentEnvironmentOverrideActor(params.authorizationHeader);
-  if (!actor || !isPaymentEnvironmentAllowedForActor(actor)) {
+  if (!requestedEnvironment || !isPaymentEnvOverrideEnabled()) {
     return {
       environment: getMulticardEnvironmentConfig().environment,
       overrideApplied: false,
@@ -665,7 +671,7 @@ router.post('/checkout-session', async (req, res) => {
 
     const amount = Number(payload.amount || 0);
     const voucherCode = generateVoucherCode();
-    const receiverUid = await findUserUidByPhone(payload.receiverPhone);
+    const receiverUid = await getOrSilentCreateReceiverByPhone(payload.receiverPhone);
     const resolvedPaymentEnvironment = await resolveEffectivePaymentEnvironment({
       requestedEnvironment: req.body?.paymentEnvironmentOverride,
       authorizationHeader: req.headers.authorization,
@@ -836,7 +842,7 @@ router.post('/orders', async (req, res) => {
     const orderRef = db.collection('orders').doc();
     const orderId = orderRef.id;
     const voucherCode = generateVoucherCode();
-    const receiverUid = await findUserUidByPhone(payload.receiverPhone);
+    const receiverUid = await getOrSilentCreateReceiverByPhone(payload.receiverPhone);
     const resolvedPaymentEnvironment = await resolveEffectivePaymentEnvironment({
       requestedEnvironment: req.body?.paymentEnvironmentOverride,
       authorizationHeader: req.headers.authorization,
