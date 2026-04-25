@@ -1,4 +1,8 @@
 import crypto from 'crypto';
+import {
+  getMulticardEnvironmentConfig,
+  type PaymentEnvironment,
+} from '../config/paymentEnvironment';
 
 type MulticardTokenResponse = {
   token: string;
@@ -22,10 +26,30 @@ type MulticardInvoiceResponse = {
   store_id: number;
 };
 
-type CachedToken = {
+type MulticardPartnerPaymentMethod = 'payme' | 'click' | 'uzum';
+
+type MulticardPartnerPaymentRequest = {
+  amount: number;
+  invoiceId: string;
+  callbackUrl: string;
+  paymentSystem: MulticardPartnerPaymentMethod;
+};
+
+type MulticardPartnerPaymentResponse = {
+  uuid: string;
+  checkout_url: string;
+  short_link?: string | null;
+  deeplink?: string | null;
+  amount: number;
+  invoice_id: string;
+  store_id: number;
+  payment_system?: string | null;
+};
+
+type CachedTokenEntry = {
   token: string;
   expiresAtMs: number;
-} | null;
+};
 
 export class MulticardApiError extends Error {
   status: number;
@@ -39,17 +63,19 @@ export class MulticardApiError extends Error {
   }
 }
 
-let cachedToken: CachedToken = null;
+const cachedTokens = new Map<string, CachedTokenEntry>();
 
-const getMulticardConfig = () => ({
-  baseUrl: (process.env.MULTICARD_BASE_URL || 'https://dev-mesh.multicard.uz').replace(/\/$/, ''),
-  applicationId: process.env.MULTICARD_APPLICATION_ID || '',
-  secret: process.env.MULTICARD_SECRET || '',
-  storeId: Number(process.env.MULTICARD_STORE_ID || 0),
-});
+const getMulticardConfig = (environment?: PaymentEnvironment | null) =>
+  getMulticardEnvironmentConfig(environment);
 
-const ensureConfigured = () => {
-  const { applicationId, secret, storeId } = getMulticardConfig();
+const getTokenCacheKey = (environment?: PaymentEnvironment | null) => {
+  const { environment: resolvedEnvironment, baseUrl, applicationId, storeId } =
+    getMulticardConfig(environment);
+  return `${resolvedEnvironment}:${baseUrl}:${applicationId}:${storeId}`;
+};
+
+const ensureConfigured = (environment?: PaymentEnvironment | null) => {
+  const { applicationId, secret, storeId } = getMulticardConfig(environment);
 
   if (!applicationId || !secret || !storeId) {
     throw new MulticardApiError(
@@ -60,8 +86,8 @@ const ensureConfigured = () => {
   }
 };
 
-const buildUrl = (path: string) => {
-  const { baseUrl } = getMulticardConfig();
+const buildUrl = (path: string, environment?: PaymentEnvironment | null) => {
+  const { baseUrl } = getMulticardConfig(environment);
   return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 };
 
@@ -79,8 +105,12 @@ const parseExpiry = (expiry?: string) => {
   return parsed;
 };
 
-const requestJson = async <T>(path: string, init: RequestInit): Promise<T> => {
-  const response = await fetch(buildUrl(path), {
+const requestJson = async <T>(
+  path: string,
+  init: RequestInit,
+  environment?: PaymentEnvironment | null,
+): Promise<T> => {
+  const response = await fetch(buildUrl(path, environment), {
     ...init,
     headers: {
       Accept: 'application/json',
@@ -108,9 +138,11 @@ const requestJson = async <T>(path: string, init: RequestInit): Promise<T> => {
   return payload as T;
 };
 
-export const getMulticardToken = async () => {
-  ensureConfigured();
-  const { applicationId, secret } = getMulticardConfig();
+export const getMulticardToken = async (environment?: PaymentEnvironment | null) => {
+  ensureConfigured(environment);
+  const { applicationId, secret } = getMulticardConfig(environment);
+  const cacheKey = getTokenCacheKey(environment);
+  const cachedToken = cachedTokens.get(cacheKey) || null;
 
   if (cachedToken && cachedToken.expiresAtMs - Date.now() > 60 * 1000) {
     return cachedToken.token;
@@ -125,22 +157,24 @@ export const getMulticardToken = async () => {
       application_id: applicationId,
       secret,
     }),
-  });
+  }, environment);
 
-  cachedToken = {
+  cachedTokens.set(cacheKey, {
     token: payload.token,
     expiresAtMs: parseExpiry(payload.expiry),
-  };
+  });
 
   return payload.token;
 };
 
-export const createMulticardInvoice = async (params: MulticardInvoiceRequest) => {
-  ensureConfigured();
-  const { storeId } = getMulticardConfig();
-  const token = await getMulticardToken();
+export const createMulticardInvoice = async (
+  params: MulticardInvoiceRequest & { environment?: PaymentEnvironment | null },
+) => {
+  ensureConfigured(params.environment);
+  const { storeId } = getMulticardConfig(params.environment);
+  const token = await getMulticardToken(params.environment);
 
-  const payload = await requestJson<{ success: boolean; data: MulticardInvoiceResponse }>('/invoice', {
+  const payload = await requestJson<{ success: boolean; data: MulticardInvoiceResponse }>('/payment/invoice', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -148,15 +182,52 @@ export const createMulticardInvoice = async (params: MulticardInvoiceRequest) =>
     },
     body: JSON.stringify({
       store_id: storeId,
-      amount: params.amount,
+      amount: params.amount * 100,
       invoice_id: params.invoiceId,
       return_url: params.returnUrl,
       callback_url: params.callbackUrl,
     }),
-  });
+  }, params.environment);
 
   if (!payload?.success || !payload?.data?.checkout_url) {
     throw new MulticardApiError('Multicard did not return checkout_url', 'MULTICARD_INVALID_RESPONSE', 502);
+  }
+
+  return payload.data;
+};
+
+export const createMulticardPartnerPayment = async (
+  params: MulticardPartnerPaymentRequest & { environment?: PaymentEnvironment | null },
+) => {
+  ensureConfigured(params.environment);
+  const { storeId } = getMulticardConfig(params.environment);
+  const token = await getMulticardToken(params.environment);
+
+  const payload = await requestJson<{ success: boolean; data: MulticardPartnerPaymentResponse }>(
+    '/payment',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        store_id: storeId,
+        amount: params.amount * 100,
+        invoice_id: params.invoiceId,
+        payment_system: params.paymentSystem,
+        callback_url: params.callbackUrl,
+      }),
+    },
+    params.environment,
+  );
+
+  if (!payload?.success || !payload?.data?.checkout_url) {
+    throw new MulticardApiError(
+      'Multicard did not return checkout_url for partner page payment',
+      'MULTICARD_INVALID_RESPONSE',
+      502,
+    );
   }
 
   return payload.data;
@@ -167,8 +238,9 @@ export const verifyMulticardSuccessSignature = (params: {
   invoiceId: string;
   amount: number | string;
   sign?: string;
+  environment?: PaymentEnvironment | null;
 }) => {
-  const { secret } = getMulticardConfig();
+  const { secret } = getMulticardConfig(params.environment);
   const expected = crypto
     .createHash('md5')
     .update(`${params.storeId}${params.invoiceId}${params.amount}${secret}`)
@@ -182,8 +254,9 @@ export const verifyMulticardWebhookSignature = (params: {
   invoiceId: string;
   amount: number | string;
   sign?: string;
+  environment?: PaymentEnvironment | null;
 }) => {
-  const { secret } = getMulticardConfig();
+  const { secret } = getMulticardConfig(params.environment);
   const expected = crypto
     .createHash('sha1')
     .update(`${params.uuid}${params.invoiceId}${params.amount}${secret}`)
